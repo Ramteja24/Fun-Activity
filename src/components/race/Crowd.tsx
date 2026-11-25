@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { CSSProperties, RefObject } from 'react';
 import { BOARD_TEXT } from '../../brand';
 
@@ -182,8 +183,11 @@ function CrowdTile({ index }: { index: number }) {
   );
 }
 
-/** The stands and the sponsor boards. Track.tsx slides crowdRef / boardsRef with the race (parallax). */
-export function Crowd({ crowdRef, boardsRef }: { crowdRef: RefObject<HTMLDivElement | null>; boardsRef: RefObject<HTMLDivElement | null> }) {
+/**
+ * The stands and the sponsor boards. Track.tsx slides crowdRef / boardsRef with the race (parallax). Memoised: its props never change
+ * during a race, so the hundreds of figures are built once instead of on every update of the race screen.
+ */
+export const Crowd = memo(function Crowd({ crowdRef, boardsRef }: { crowdRef: RefObject<HTMLDivElement | null>; boardsRef: RefObject<HTMLDivElement | null> }) {
   return (
     <>
       <CrowdDefs />
@@ -205,4 +209,4 @@ export function Crowd({ crowdRef, boardsRef }: { crowdRef: RefObject<HTMLDivElem
       </div>
     </>
   );
-}
+});

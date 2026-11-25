@@ -15,10 +15,11 @@ describe('routing', () => {
   const app = read('src/App.tsx');
 
   test('the room’s activity picks the screen: dashboard, Funny Pose Challenge, Tech Trivia — and TypeDrive’s own screens are routed exactly as before', () => {
-    const hub = app.indexOf("room.activity === 'hub'");
-    const pose = app.indexOf("room.activity === 'pose'");
-    const trivia = app.indexOf("room.activity === 'trivia'");
-    const ended = app.indexOf('room.match.ended');
+    const from = app.indexOf('let screen'); // the routing block (the music line above it also reads the room)
+    const hub = app.indexOf("room.activity === 'hub'", from);
+    const pose = app.indexOf("room.activity === 'pose'", from);
+    const trivia = app.indexOf("room.activity === 'trivia'", from);
+    const ended = app.indexOf('room.match.ended', from);
     assert.ok(hub > 0 && hub < pose && pose < trivia && trivia < ended, 'the new screens come before TypeDrive’s chain');
     for (const line of [
       'screen = <Lobby />;',

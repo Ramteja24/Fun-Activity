@@ -179,12 +179,14 @@ export interface TriviaReveal {
   /** Index of the right option. */
   correct: number;
   explanation?: string;
-  /** What this question earned each team (the team's average over its members who were in the room). */
+  /** What this question earned each team: TRIVIA_POINTS for the team of the first correct answer, 0 for the others. */
   gained: Record<TeamId, number>;
   /** How many of each team's members answered correctly, out of how many were eligible. */
   tally: Record<TeamId, { correct: number; eligible: number }>;
   /** How many players picked each option. */
   picks: number[];
+  /** Whoever answered correctly first (earliest on the server's clock) — the only answer that scores. None if nobody got it right. */
+  first?: { id: string; name: string; team: TeamId };
 }
 
 export interface TriviaTop {
@@ -276,10 +278,11 @@ export type ClientMsg =
   | { t: 'activity'; activity: Screen }
   /**
    * Host only: run the Funny Pose Challenge. Each round the host picks a `team` — the spinner then picks one of its players at
-   * random, the host never chooses the player — `begin`s the round, `reveal`s the pose, marks it `done` or `notdone`, and goes to
-   * the `next` round. `start` begins a session (replacing a finished one) and `reset` throws the current one away.
+   * random, the host never chooses the player (`respin` skips someone who is away) — `begin`s the round, `reveal`s the pose, marks
+   * it `done` or `notdone`, and goes to the `next` round. `start` begins a session (replacing a finished one) and `reset` throws the
+   * current one away.
    */
-  | { t: 'pose'; op: 'start' | 'begin' | 'reveal' | 'done' | 'notdone' | 'next' | 'reset' }
+  | { t: 'pose'; op: 'start' | 'begin' | 'respin' | 'reveal' | 'done' | 'notdone' | 'next' | 'reset' }
   | { t: 'pose'; op: 'team'; team: TeamId }
   /** Host only: run Tech Trivia (`start` the quiz, `reveal` the answer now, go to the `next` question). */
   | { t: 'trivia'; op: 'start' | 'reveal' | 'next' | 'reset' }
@@ -291,7 +294,7 @@ export type ClientMsg =
 export type PoseCommand = Extract<ClientMsg, { t: 'pose' }>;
 export type PoseOp = PoseCommand['op'];
 /** The pose operations that take no argument (`team` carries one). */
-export const POSE_PLAIN_OPS: readonly PoseOp[] = ['start', 'begin', 'reveal', 'done', 'notdone', 'next', 'reset'];
+export const POSE_PLAIN_OPS: readonly PoseOp[] = ['start', 'begin', 'respin', 'reveal', 'done', 'notdone', 'next', 'reset'];
 export type TriviaOp = Extract<ClientMsg, { t: 'trivia' }>['op'];
 export const TRIVIA_OPS: readonly TriviaOp[] = ['start', 'reveal', 'next', 'reset'];
 

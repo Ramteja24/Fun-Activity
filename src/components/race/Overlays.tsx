@@ -84,7 +84,8 @@ export function Countdown({ stage }: { stage: CountdownStage }) {
  * rush at 100+. Purely a picture of the number the HUD already shows.
  */
 export function SpeedLines({ wpm, racing }: { wpm: number; racing: boolean }) {
-  const k = racing ? Math.min(1, Math.max(0, (wpm - 8) / 100)) : 0;
+  // rounded to 0.05: --k sets the streaks' animation speed, and re-timing an animation on every small change costs a style pass
+  const k = racing ? Math.round(Math.min(1, Math.max(0, (wpm - 8) / 100)) * 20) / 20 : 0;
   return <div className={`speedfx${k > 0.04 ? ' on' : ''}${k > 0.7 ? ' hot' : ''}`} style={{ '--k': k.toFixed(2) } as React.CSSProperties} aria-hidden />;
 }
 

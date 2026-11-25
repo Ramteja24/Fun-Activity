@@ -1,12 +1,11 @@
 // Tech Trivia. Five multiple-choice questions, one at a time; every participant answers on their own screen; the server times
 // the question, scores it and shows the right answer. The host (an organiser, not a player) starts the quiz and moves it on.
 //
-// Scoring, decided here and recorded once per question:
-//  • a correct answer earns TRIVIA_BASE plus up to TRIVIA_SPEED for answering early (linear over the time limit);
-//  • a team's score for the question is the AVERAGE of its members' points, counting every member who was in the room when the
-//    question opened — so a team with more people (or fewer) has no advantage, and a member who does not answer counts as 0.
+// Scoring, decided here and recorded once per question: only the FIRST correct answer counts — the earliest on the server's clock
+// (answers are kept in the order they arrived, so equal timestamps go to whoever arrived first). That player's team gets
+// TRIVIA_POINTS; everyone else, and every team when nobody got it right, gets 0.
 // The right answer never leaves the server until the question is revealed.
-import { TRIVIA_BASE, TRIVIA_LIMIT_MS, TRIVIA_QUESTIONS, TRIVIA_SPEED } from '../../shared/activities';
+import { TRIVIA_LIMIT_MS, TRIVIA_POINTS, TRIVIA_QUESTIONS } from '../../shared/activities';
 import type { TriviaInfo, TriviaReveal, TriviaStage, TriviaTop } from '../../shared/protocol';
 import { TEAM_IDS, zeroPoints, type TeamId } from '../../shared/teams';
 import { TRIVIA_BANK, type TriviaItem } from '../data/trivia-bank';
@@ -41,12 +40,6 @@ export function pickQuestions(n: number, used: Set<string>, rand: Rand, bank: re
     });
   for (const q of picked) used.add(q.id);
   return shuffle(picked, rand);
-}
-
-/** The points one correct answer earns: the base, plus a share of the speed bonus for the time left. */
-export function answerPoints(remainingMs: number, limitMs = TRIVIA_LIMIT_MS): number {
-  const share = Math.min(1, Math.max(0, remainingMs / limitMs));
-  return TRIVIA_BASE + Math.round(TRIVIA_SPEED * share);
 }
 
 interface Answer {
@@ -118,23 +111,34 @@ export class TriviaSession {
     const q = this.q;
     const gained = zeroPoints();
     const tally = Object.fromEntries(TEAM_IDS.map((t) => [t, { correct: 0, eligible: 0 }])) as Record<TeamId, { correct: number; eligible: number }>;
-    const sum = zeroPoints();
     const picks = q.options.map(() => 0);
+    // the first correct answer: earliest timestamp; the map keeps arrival order, so a tie goes to whoever arrived first
+    let first: { id: string; at: number } | null = null;
+    for (const [id, a] of this.answers) {
+      if (a.choice === q.correct && this.eligible.has(id) && (!first || a.at < first.at)) first = { id, at: a.at };
+    }
     for (const e of this.eligible.values()) {
       const a = this.answers.get(e.id);
       tally[e.team].eligible += 1;
       if (a) picks[a.choice] = (picks[a.choice] ?? 0) + 1;
       const right = !!a && a.choice === q.correct;
-      const points = right ? answerPoints(this.endsAt - a.at) : 0;
+      const points = first?.id === e.id ? TRIVIA_POINTS : 0;
       if (right) tally[e.team].correct += 1;
-      sum[e.team] += points;
+      gained[e.team] += points;
       const t = this.totals.get(e.id) ?? { id: e.id, name: e.name, team: e.team, points: 0, correct: 0 };
       t.points += points;
       t.correct += right ? 1 : 0;
       this.totals.set(e.id, t);
     }
-    for (const t of TEAM_IDS) gained[t] = tally[t].eligible > 0 ? Math.round(sum[t] / tally[t].eligible) : 0;
-    this.reveal = { correct: q.correct, explanation: q.explanation, gained, tally, picks };
+    const winner = first ? this.eligible.get(first.id)! : null;
+    this.reveal = {
+      correct: q.correct,
+      explanation: q.explanation,
+      gained,
+      tally,
+      picks,
+      ...(winner ? { first: { id: winner.id, name: winner.name, team: winner.team } } : {}),
+    };
     this.history.push({ index: this.index, gained });
     this.stage = 'reveal';
     this.env.changed();

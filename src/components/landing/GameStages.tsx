@@ -9,7 +9,7 @@ import { PoseDrawing } from '../../portal/PoseDrawing';
 /** Facts shown under each game's introduction, taken from the rules of the game (see README). */
 export const GAME_FACTS = {
   pose: ['8 rounds', '24 funny poses', '+10 pts a round'],
-  trivia: ['5 questions', '20 s to answer', 'Up to 200 pts each'],
+  trivia: ['5 questions', '20 s to answer', 'First correct: +10 pts'],
 } as const;
 
 // ------------------------------------------------------------------------------------------------ Funny Pose Challenge

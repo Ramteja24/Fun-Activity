@@ -74,7 +74,7 @@
   right: 0;
   height: 2px;
   background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.34) 0 26px, transparent 26px 64px);
-  background-position: var(--dash-x, 0px) 0;
+  background-position: 0 0; /* scrolled by Track.tsx, written straight to the element */
 }
 .road .clip {
   position: absolute;
@@ -219,7 +219,9 @@
   right: 94%;
   top: 50%;
   height: 34%;
-  width: calc(var(--lane-h) * 1.1 * var(--f));
+  /* full length, shrunk with speed by \`scale\` (a transform: no layout), which composes with the flicker's transform */
+  width: calc(var(--lane-h) * 1.1);
+  scale: var(--f) 1;
   min-width: 0;
   opacity: calc(var(--f) * 3);
   transform: translateY(-40%);
@@ -333,7 +335,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: var(--streak, 0);
+  opacity: 0; /* set by Track.tsx */
   transition: opacity 0.4s;
   overflow: hidden;
 }
@@ -454,12 +456,10 @@
     linear-gradient(180deg, #373843 0%, #2b2c37 50%, #22232c 100%);
   background-size: 384px 20%, 384px 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
   background-repeat: repeat, repeat-x, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position: var(--pool-x, 0px) 0, var(--pool-x, 0px) 0, 0 0, 0 0, 0 0, 0 0;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; /* scrolled by Track.tsx */
 }
-/* kerbs along both edges of the road */
-.road::before,
-.road::after {
-  content: '';
+/* kerbs along both edges of the road: real elements (.kerb), so their scroll is written to them alone and never re-styles the cars */
+.road .kerb {
   position: absolute;
   left: 0;
   right: 0;
@@ -467,15 +467,18 @@
   z-index: 0;
   pointer-events: none;
   background: repeating-linear-gradient(90deg, #f2f4f9 0 32px, #e0222f 32px 64px);
-  background-position: var(--dash-x, 0px) 0;
 }
-.road::before {
+.road .kerb-t {
   top: 0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
 }
-.road::after {
+.road .kerb-b {
   bottom: 0;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.55);
+}
+.road::before,
+.road::after {
+  display: none;
 }
 /* lane markings: brighter, with a little light on them */
 .road .lane-line {
@@ -537,7 +540,8 @@
 /* ---------------------------------------------------------------------------------------------- the cars */
 /* the exhaust flame: a jagged silhouette, longer with speed, and flaring with every correct character (--k) */
 .car .flame {
-  width: calc(var(--lane-h) * 1.1 * var(--f) * (1 + 0.5 * var(--k, 0)));
+  width: calc(var(--lane-h) * 1.1);
+  scale: calc(var(--f) * (1 + 0.5 * var(--k, 0))) 1;
   background:
     radial-gradient(ellipse at 100% 50%, #ffffff 0, #fff5b8 16%, transparent 38%),
     linear-gradient(270deg, #ffe08a 0%, #ffb02e 20%, #ff5a1f 56%, rgba(255, 60, 20, 0) 100%);
@@ -1172,7 +1176,8 @@
   clip-path: none;
   filter: none;
   height: 24%;
-  width: calc(var(--lane-h) * 0.9 * var(--f, 0));
+  width: calc(var(--lane-h) * 0.9);
+  scale: var(--f, 0) 1;
   border-radius: 50%;
   transform: translateY(-50%);
   opacity: calc(var(--f, 0) * 2.4);
@@ -1182,7 +1187,8 @@
   animation: flicker 0.09s steps(2) infinite;
   clip-path: polygon(100% 24%, 72% 8%, 52% 24%, 30% 10%, 0 50%, 30% 90%, 52% 76%, 72% 92%, 100% 76%);
   height: 34%;
-  width: calc(var(--lane-h) * 1.1 * var(--f, 0) * (1 + 0.5 * var(--k, 0)));
+  width: calc(var(--lane-h) * 1.1);
+  scale: calc(var(--f, 0) * (1 + 0.5 * var(--k, 0))) 1;
   transform: translateY(-40%);
   opacity: calc(var(--f, 0) * 3);
   background:
@@ -1208,7 +1214,9 @@
    place alone when the car behind would be under it */
 .road.field .car .name-tag {
   left: auto;
-  right: calc(100% + var(--lane-h) * (0.18 + 0.62 * var(--f, 0)));
+  /* clear of the flame: the part that follows the speed is a translate (no layout as the speed changes) */
+  right: calc(100% + var(--lane-h) * 0.18);
+  translate: calc(var(--lane-h) * -0.62 * var(--f, 0)) 0;
   top: 50%;
   max-width: none;
   overflow: visible;

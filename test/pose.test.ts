@@ -81,7 +81,7 @@ describe('the 24 poses', () => {
 // ------------------------------------------------------------------------------------------------ the messages
 describe('the pose messages', () => {
   test('plain steps and choosing a team parse; there is no message for choosing a player; anything malformed is dropped', () => {
-    for (const op of ['start', 'begin', 'reveal', 'done', 'notdone', 'next', 'reset']) assert.deepEqual(parseClientMsg(`{"t":"pose","op":"${op}"}`), { t: 'pose', op });
+    for (const op of ['start', 'begin', 'respin', 'reveal', 'done', 'notdone', 'next', 'reset']) assert.deepEqual(parseClientMsg(`{"t":"pose","op":"${op}"}`), { t: 'pose', op });
     assert.deepEqual(parseClientMsg('{"t":"pose","op":"team","team":"vibe"}'), { t: 'pose', op: 'team', team: 'vibe' });
     for (const bad of ['{"t":"pose"}', '{"t":"pose","op":"team"}', '{"t":"pose","op":"team","team":"reds"}', '{"t":"pose","op":"player","id":"abc123"}', '{"t":"pose","op":"back"}', '{"t":"pose","op":"spin"}', '{"t":"pose","op":"correct"}', '{"t":"emoji","op":"start"}']) {
       assert.equal(parseClientMsg(bad), null, bad);
@@ -420,6 +420,62 @@ describe('the Funny Pose Challenge in a room', () => {
     assert.equal(info(s).pose, null);
     assert.deepEqual(info(s).activities[1]!.points, zeroPoints());
     assert.deepEqual(info(s).activities[0]!.points, zeroPoints(), 'TypeDrive’s score is its own');
+  });
+
+  test('re-spin: when the picked person is away the host spins again — never onto anyone skipped this round, and it costs nobody a turn', () => {
+    const s = bigTeam(4, 71);
+    cmd(s, { op: 'start' });
+    assert.equal(cmd(s, { op: 'respin' }), false, 'nothing to re-spin before a team is chosen');
+    cmd(s, { op: 'team', team: 'titans' });
+    assert.equal(cmd(s, { op: 'respin' }), false, 'not while the spinner is still running');
+    s.advance(POSE_SPIN_MS);
+    const skipped: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const away = pose(s).player!.id;
+      skipped.push(away);
+      assert.equal(cmd(s, { op: 'respin' }), true);
+      assert.equal(pose(s).stage, 'spin', 'the spinner runs again for the same team');
+      assert.equal(pose(s).team, 'titans');
+      assert.ok(!skipped.includes(pose(s).player!.id), 'never lands on anyone skipped this round');
+      s.advance(POSE_SPIN_MS);
+    }
+    // all but one skipped: the last one is picked; skipping them too falls back to anyone but them
+    const lastOne = pose(s).player!.id;
+    assert.equal(cmd(s, { op: 'respin' }), true);
+    assert.notEqual(pose(s).player!.id, lastOne);
+    s.advance(POSE_SPIN_MS);
+    assert.deepEqual([...s.room.roomInfo().pose!.history], [], 'nothing scored');
+    assert.equal(cmd(s, { op: 'begin' }), true);
+    assert.equal(cmd(s, { op: 'respin' }), false, 'not once the round has started');
+  });
+
+  test('re-spin is refused when the person picked is the only one on their team', () => {
+    const s = bigTeam(2, 72);
+    cmd(s, { op: 'start' });
+    cmd(s, { op: 'team', team: 'vibe' }); // B1 is the only Vibe player
+    s.advance(POSE_SPIN_MS);
+    assert.equal(pose(s).player!.name, 'B1');
+    assert.equal(cmd(s, { op: 'respin' }), false);
+    assert.equal(pose(s).stage, 'selected', 'nothing changed');
+  });
+
+  test('re-spin costs nobody a turn: the skipped person comes up again in a later round before anyone who has played', () => {
+    const s = bigTeam(2, 73);
+    cmd(s, { op: 'start' });
+    cmd(s, { op: 'team', team: 'titans' });
+    s.advance(POSE_SPIN_MS);
+    const away = pose(s).player!.id;
+    cmd(s, { op: 'respin' });
+    s.advance(POSE_SPIN_MS);
+    const played = pose(s).player!.id;
+    assert.notEqual(played, away);
+    cmd(s, { op: 'begin' });
+    cmd(s, { op: 'reveal' });
+    cmd(s, { op: 'done' });
+    cmd(s, { op: 'next' });
+    cmd(s, { op: 'team', team: 'titans' });
+    s.advance(POSE_SPIN_MS);
+    assert.equal(pose(s).player!.id, away, 'the person skipped earlier has had no turn yet, so they come up first');
   });
 
   test('the host can leave for the dashboard mid-spin and come back to the landed pick; an admin who drops mid-round finishes it on return', () => {

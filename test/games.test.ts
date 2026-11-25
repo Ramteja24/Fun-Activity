@@ -5,7 +5,7 @@ import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { POSE_POINTS, POSE_ROUNDS, TRIVIA_BASE, TRIVIA_LIMIT_MS, TRIVIA_QUESTIONS, TRIVIA_SPEED } from '../shared/activities';
+import { POSE_POINTS, POSE_ROUNDS, TRIVIA_LIMIT_MS, TRIVIA_POINTS, TRIVIA_QUESTIONS } from '../shared/activities';
 import { POSE_BANK, poseById } from '../shared/poses';
 import { GAME_FACTS, PoseStage, TriviaArena } from '../src/components/landing/GameStages';
 
@@ -69,7 +69,7 @@ describe('the facts under each introduction are the game’s own numbers', () =>
   });
 
   test('Tech Trivia: questions, seconds and the best score of a question come from the shared rules', () => {
-    assert.deepEqual([...GAME_FACTS.trivia], [`${TRIVIA_QUESTIONS} questions`, `${TRIVIA_LIMIT_MS / 1000} s to answer`, `Up to ${TRIVIA_BASE + TRIVIA_SPEED} pts each`]);
+    assert.deepEqual([...GAME_FACTS.trivia], [`${TRIVIA_QUESTIONS} questions`, `${TRIVIA_LIMIT_MS / 1000} s to answer`, `First correct: +${TRIVIA_POINTS} pts`]);
   });
 });
 

@@ -116,7 +116,7 @@ describe('the first screen', () => {
   });
 
   test('room screens are routed exactly as before: dashboard / activities by room.activity, TypeDrive’s lobby, race and results unchanged', () => {
-    const order = ["room.activity === 'hub'", "room.activity === 'pose'", "room.activity === 'trivia'", 'room.match.ended', "room.phase === 'lobby'", "room.phase === 'results'"].map((s) => app.indexOf(s));
+    const order = ["room.activity === 'hub'", "room.activity === 'pose'", "room.activity === 'trivia'", 'room.match.ended', "room.phase === 'lobby'", "room.phase === 'results'"].map((s) => app.indexOf(s, app.indexOf('let screen')));
     assert.ok(order.every((i) => i > 0) && order.every((v, i) => i === 0 || v > order[i - 1]!), `routing order ${order}`);
     assert.match(app, /screen = <Lobby \/>;/);
   });

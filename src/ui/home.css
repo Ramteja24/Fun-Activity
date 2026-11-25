@@ -1544,6 +1544,31 @@ button.pt-step:hover:not(:disabled) {
   line-height: 1.55;
   color: var(--ink-2);
 }
+/* who answered correctly first — the only answer that scores */
+.tt-first {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  font: 500 14px/1.3 var(--font-display);
+  color: var(--ink-2);
+}
+.tt-first[class*='tm-'] {
+  background: var(--tm-50);
+  box-shadow: inset 3px 0 0 var(--tm);
+}
+.tt-first b {
+  color: var(--ink);
+}
+.tt-first em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--tm, var(--success));
+}
 .tt-gains {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

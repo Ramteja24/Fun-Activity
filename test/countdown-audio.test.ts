@@ -8,6 +8,12 @@ import { createMusic, DUCK_FACTOR, MUSIC_VOLUME, type AudioLike } from '../src/a
 import { countdownStage } from '../src/game/countdown';
 import { STAGE_MS } from '../shared/protocol';
 
+/** Move the mocked clock forward in small steps, like real time: a timer set while one fires still runs in this window. */
+const advance = (ms: number) => {
+  for (let done = 0; done < ms; done += 10) mock.timers.tick(Math.min(10, ms - done));
+};
+
+
 // The race-start sound effects: when each cue is scheduled against the server clock, that it is exactly the moment the
 // visible number changes, that nothing ever plays twice (re-renders, StrictMode, reconnects, back-to-back races) or late,
 // that muted / locked audio degrades quietly, that the music ducks and always comes back — and facts about the two WAVs.
@@ -275,23 +281,23 @@ describe('with the real music controller', () => {
       storage: { get: (k) => store.get(k) ?? null, set: (k, v) => void store.set(k, v), remove: (k) => void store.delete(k) },
       onGesture: () => () => {},
     });
-    music.init();
+    music.setActive(true);
     for (let i = 0; i < 6; i++) await Promise.resolve();
-    mock.timers.tick(2000);
+    advance(2000);
     assert.equal(audio.volume, MUSIC_VOLUME);
 
     let t = 0;
     const cues: CountdownAudioEnv['play'] = () => ({ stop() {} });
     const cd = createCountdownAudio({ now: () => t, play: cues, wanted: () => music.isEnabled(), duck: (ms) => music.duck(ms), unduck: () => music.unduck(), onChange: () => () => {} });
     cd.begin('1@3600', 3600); // the race is announced 3.6 s before GO
-    mock.timers.tick(500);
+    advance(500);
     assert.ok(Math.abs(audio.volume - MUSIC_VOLUME * DUCK_FACTOR) < 1e-9, 'lowered under the beeps');
-    mock.timers.tick(3100); // → GO
+    advance(3100); // → GO
     assert.ok(Math.abs(audio.volume - MUSIC_VOLUME * DUCK_FACTOR) < 1e-9, 'still lowered at GO');
-    mock.timers.tick(GO_TAIL_MS - 100); // the GO sound is still ringing
+    advance(GO_TAIL_MS - 100); // the GO sound is still ringing
     assert.ok(Math.abs(audio.volume - MUSIC_VOLUME * DUCK_FACTOR) < 1e-9, 'still lowered while GO rings');
-    mock.timers.tick(100); // the tail is over: the release starts…
-    mock.timers.tick(1300); // …and the music eases back up over ~1.2 s
+    advance(100); // the tail is over: the release starts…
+    advance(1300); // …and the music eases back up over ~1.2 s
     assert.equal(audio.volume, MUSIC_VOLUME, 'restored without anyone asking');
     assert.equal(audio.paused, false, 'the track never stopped');
   });
@@ -383,9 +389,9 @@ describe('how the app uses it', () => {
     assert.doesNotMatch(sfx, /f1-theme|\/music\//, 'the soundtrack is never used as a sound effect');
   });
 
-  test('entering a screen of the game re-checks the music and prepares the effects', () => {
+  test('entering a room prepares the effects; the music follows the race', () => {
     const app = read('src/App.tsx');
-    assert.match(app, /music\.ensure\(\)/);
+    assert.match(app, /music\.setActive\(raceOn\)/);
     assert.match(app, /prepareSfx\(\)/);
     assert.match(app, /\[where\]/);
   });

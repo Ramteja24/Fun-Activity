@@ -15,7 +15,7 @@ export function AdminControl() {
       <>
         <span className="pill pill-brand admin-chip" title={`Logged in as the admin (${admin.username})`}>
           <span>Admin</span>
-          <span className="admin-chip-name">· {admin.username}</span>
+          <span className="admin-chip-name">{admin.username}</span>
         </span>
         {!inRoom && (
           <button type="button" className="lb-leave" onClick={logout}>

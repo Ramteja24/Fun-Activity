@@ -1,4 +1,4 @@
-import { TRIVIA_BASE, TRIVIA_LIMIT_MS, TRIVIA_QUESTIONS, TRIVIA_SPEED } from '../../shared/activities';
+import { TRIVIA_LIMIT_MS, TRIVIA_POINTS, TRIVIA_QUESTIONS } from '../../shared/activities';
 import type { TriviaInfo } from '../../shared/protocol';
 import { rankTeams, TEAMS, teamName } from '../../shared/teams';
 import { useEffect, type ReactNode } from 'react';
@@ -64,14 +64,12 @@ function Intro({ scores, title }: { scores: Record<'titans' | 'vibe' | 'ctrl', n
         <li>
           <b>2</b>
           <span>
-            A correct answer scores {TRIVIA_BASE} points, plus up to {TRIVIA_SPEED} more for answering quickly. A wrong or missing answer scores nothing.
+            First correct answer wins <em>{TRIVIA_POINTS} points</em> for your team. Every other answer, right or wrong, scores nothing — so be quick.
           </span>
         </li>
         <li>
           <b>3</b>
-          <span>
-            A team’s score for a question is the <em>average</em> of its players’ points, so a bigger team has no advantage.
-          </span>
+          <span>Your answer is final once you tap it.</span>
         </li>
         <li>
           <b>4</b>
@@ -209,7 +207,16 @@ function Question({ t, title }: { t: TriviaInfo; title: ReactNode }) {
         {revealed && (
           <div className="tt-reveal" role="status">
             <p className={`tt-verdict ${mine === null ? '' : mine ? 'ok' : 'no'}`}>
-              {isHost ? 'Answer revealed' : mine === null ? 'Time ran out before you answered' : mine ? 'You got it!' : 'Not this time'}
+              {isHost ? 'Answer revealed' : mine === null ? 'Time ran out before you answered' : mine ? (revealed.first?.id === me ? 'You were first!' : 'Right — but someone was quicker') : 'Not this time'}
+            </p>
+            <p className={`tt-first${revealed.first ? ` tm-${revealed.first.team}` : ''}`}>
+              {revealed.first ? (
+                <>
+                  First correct: <b>{revealed.first.name}</b> · {teamName(revealed.first.team)} <em>+{TRIVIA_POINTS}</em>
+                </>
+              ) : (
+                'Nobody got it right'
+              )}
             </p>
             {revealed.explanation && <p className="tt-why">{revealed.explanation}</p>}
             <ul className="tt-gains" aria-label="Points this question">

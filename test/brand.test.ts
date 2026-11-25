@@ -193,7 +193,10 @@ describe('the race as an arcade racer', () => {
 
   test('the car layers are all there and the road scrolls on the same clock as before', () => {
     for (const cls of ['trail', 'flame', 'nitro-jet', 'beam']) assert.match(track, new RegExp(`<div className="${cls}" />`), cls);
-    assert.match(track, /road\.style\.setProperty\('--pool-x'/);
+    // the road's scroll goes straight to the asphalt and the stripes, only when it changes (never a custom property re-styling every car)
+    assert.match(track, /road\.style\.backgroundPosition = `\$\{pool\} 0, \$\{pool\} 0/);
+    assert.match(track, /for \(const el of stripes\.current\) el\.style\.backgroundPosition = `\$\{dash\} 0`;/);
+    assert.doesNotMatch(track, /setProperty\('--(pool-x|dash-x|streak)'/);
     for (const sel of ['.car.nitro .nitro-jet', '.car.rolling .spokes', '.car.pass', '.car .beam', '.car .trail']) assert.ok(css.includes(sel), sel);
     assert.match(css, /animation: wheel-spin calc\(0\.5s \/ max\(var\(--f\), 0\.2\)\) linear infinite;/, 'wheels turn faster with speed');
   });

@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 interface Props {
   text: string;
@@ -19,6 +19,25 @@ const Ch = memo(function Ch({ ch, i, state }: { ch: string; i: number; state: Ch
     <span data-i={i} className={`ch ${isSpace ? 'sp' : ''} ${cls}`}>
       {isSpace ? ' ' : ch}
     </span>
+  );
+});
+
+/**
+ * One word and the space after it. Memoised on where the caret is *relative to this word*: typing re-renders only the word being typed
+ * (and the one just finished), never the whole passage.
+ */
+const Word = memo(function Word({ chars, start, at, error, flash, space }: { chars: string[]; start: number; at: number; error: boolean; flash: boolean; space: boolean }) {
+  // `at`: how far into this word the caret is — −1 before it, chars.length + 1 past it (the space included)
+  const state = (k: number): CharState => (k < at ? 'done' : k === at ? (error ? 'err' : 'cur') : 'todo');
+  return (
+    <>
+      <span className={`word${flash ? ' flash' : ''}`}>
+        {chars.map((c, ci) => (
+          <Ch key={ci} ch={c} i={start + ci} state={state(ci)} />
+        ))}
+      </span>
+      {space && <Ch ch=" " i={start + chars.length} state={state(chars.length)} />}
+    </>
   );
 });
 
@@ -55,7 +74,8 @@ export function TypingBar({ text, pos, error, flashWord, enabled, onChar }: Prop
     if (!el) return;
     const tx = Math.min(win.clientWidth * 0.14, win.clientWidth * 0.42 - el.offsetLeft);
     track.style.setProperty('--tx', `${tx}px`);
-  });
+    // only when the caret moves: reading offsetLeft forces a layout, which must not happen on every re-render of the race screen
+  }, [pos, text]);
 
   // Keep the input focused for the whole race (desktop), and let any tap/click on the page refocus it.
   useEffect(() => {
@@ -94,21 +114,11 @@ export function TypingBar({ text, pos, error, flashWord, enabled, onChar }: Prop
     <div className="typebar" ref={barRef}>
       <div className="type-window" ref={windowRef}>
         <div className="type-track" ref={trackRef} aria-hidden>
-          {words.map((w, wi) => (
-            <Fragment key={wi}>
-              <span className={`word${flashWord === wi ? ' flash' : ''}`}>
-                {w.chars.map((c, ci) => {
-                  const i = w.start + ci;
-                  return <Ch key={i} ch={c} i={i} state={i < pos ? 'done' : i === pos ? (error ? 'err' : 'cur') : 'todo'} />;
-                })}
-              </span>
-              {wi < words.length - 1 &&
-                (() => {
-                  const i = w.start + w.chars.length;
-                  return <Ch ch=" " i={i} state={i < pos ? 'done' : i === pos ? (error ? 'err' : 'cur') : 'todo'} />;
-                })()}
-            </Fragment>
-          ))}
+          {words.map((w, wi) => {
+            const at = Math.max(-1, Math.min(w.chars.length + 1, pos - w.start));
+            const caretHere = at >= 0 && at <= w.chars.length;
+            return <Word key={wi} chars={w.chars} start={w.start} at={at} error={caretHere && error} flash={flashWord === wi} space={wi < words.length - 1} />;
+          })}
         </div>
       </div>
 

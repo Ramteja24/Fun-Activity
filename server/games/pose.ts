@@ -69,6 +69,8 @@ export class PoseSession {
   private team: TeamId | null = null;
   private player: Named | null = null;
   private pool: Named[] = [];
+  /** People the host re-spun away this round (not at the meeting): the spinner does not land on them again this round. */
+  private skipped = new Set<string>();
   private spinStartedAt = 0;
   private endsAt: number | undefined;
   private result: 'completed' | 'not_completed' | undefined;
@@ -98,13 +100,29 @@ export class PoseSession {
   selectTeam(team: unknown): boolean {
     if ((this.stage !== 'pick' && this.stage !== 'selected') || !isTeamId(team)) return false;
     if (this.stage === 'selected' && team === this.team) return false;
+    this.skipped.clear();
     return this.spin(team);
   }
 
+  /**
+   * Host: the picked person is away — spin again for the same team. It never lands on them, nor on anyone skipped earlier this round
+   * (once everyone else has been skipped, any other member); a team of one cannot be re-spun. Costs nobody a turn.
+   */
+  respinSkipping(): boolean {
+    if (this.stage !== 'selected' || !this.team || !this.player) return false;
+    const away = this.player.id;
+    const others = this.env.eligible().filter((e) => e.team === this.team && e.id !== away);
+    if (others.length === 0) return false;
+    this.skipped.add(away);
+    return this.spin(this.team, away);
+  }
+
   /** Pick a player of `team` now and start the spinner. False when nobody on the team is here. */
-  private spin(team: TeamId): boolean {
+  private spin(team: TeamId, justSkipped?: string): boolean {
     const members = this.env.eligible().filter((e) => e.team === team);
-    const picked = pickPlayer(members, this.env.memory.playerTurns, this.env.rand);
+    const fresh = members.filter((m) => !this.skipped.has(m.id));
+    const candidates = fresh.length > 0 ? fresh : members.filter((m) => m.id !== justSkipped);
+    const picked = pickPlayer(candidates, this.env.memory.playerTurns, this.env.rand);
     if (!picked) return false;
     this.clear();
     this.team = team;
@@ -184,6 +202,7 @@ export class PoseSession {
     }
     this.round += 1;
     this.stage = 'pick';
+    this.skipped.clear();
     this.team = null;
     this.player = null;
     this.pool = [];

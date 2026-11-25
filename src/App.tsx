@@ -83,21 +83,23 @@ function GameTransition() {
 
 export default function App() {
   useEffect(() => startNetworking(), []);
-  // Background music: one shared player for every screen (see audio/music.ts). init() is idempotent.
-  useEffect(() => music.init(), []);
   const room = useGame((s) => s.room);
   const me = useGame((s) => s.me);
   const showResults = useGame((s) => s.showResults);
   const entry = useGame((s) => s.entry);
 
-  // Entering the game (the lobby, the race, the results) is the moment to make sure the music is on and the race-start
-  // sounds are ready: the click that got the player here is a gesture, so the browser accepts it. Without one (a refresh
-  // straight into a room) the music stays "blocked" — the speaker shows a hint — until the first click or key press.
+  // Entering a room is the moment to get the race-start sounds ready: the click that got the player here is a gesture, so
+  // the browser accepts it.
   const where = room && me ? room.phase : 'landing';
   useEffect(() => {
-    music.ensure();
     if (where !== 'landing') prepareSfx();
   }, [where]);
+
+  // Background music plays only while a TypeDrive race is on this screen — the countdown and the race — and stops for a
+  // driver who has finished (their results page), at the end of the race, and everywhere else.
+  const raceOn =
+    !!room && !!me && room.activity === 'typedrive' && !room.match.ended && (room.phase === 'countdown' || room.phase === 'racing') && !showResults;
+  useEffect(() => music.setActive(raceOn), [raceOn]);
 
   // The small interface sounds (a click on every button, a blip when someone joins): ready on the first gesture, like the music,
   // and silenced by the same speaker button.

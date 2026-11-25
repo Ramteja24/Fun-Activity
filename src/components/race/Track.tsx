@@ -1,5 +1,6 @@
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { PlayerInfo } from '../../../shared/protocol';
+import type { TeamId } from '../../../shared/teams';
 import { uiSound } from '../../audio/ui-sounds';
 import {
   cellOf,
@@ -33,6 +34,9 @@ interface CarFx {
   k: number;
   kStr: string;
   nStr: string;
+  /** what was last written to the car (its transform and speed), so a frame only writes what changed */
+  fStr: string;
+  tf: string;
   rolling: boolean;
   nitro: boolean;
   /** which side of my car this one is on (−1 behind, +1 ahead, 0 not yet known) — a flip is an overtake */
@@ -88,6 +92,67 @@ const Boom = memo(function Boom() {
   );
 });
 
+interface CarViewProps {
+  id: string;
+  index: number;
+  register(id: string, el: HTMLDivElement | null): void;
+  vehicle: number;
+  name: string;
+  team: TeamId | null;
+  offline: boolean;
+  isMe: boolean;
+  field: boolean;
+  row: number;
+  cellMine: boolean;
+  sub: number;
+  subs: number;
+  rank: number | undefined;
+  myName: string;
+  myRank: number | undefined;
+  boomSeq: number;
+}
+
+/**
+ * One car. Memoised: the race screen re-renders on every keystroke and every server update, but a car only re-renders when something it
+ * shows changes (its place, name, team or connection). Its position and effects are written by the paint loop, never through React.
+ */
+const CarView = memo(function CarView({ id, index, register, vehicle, name, team, offline, isMe, field, row, cellMine, sub, subs, rank, myName, myRank, boomSeq }: CarViewProps) {
+  const style = (
+    field
+      ? { '--row': row, '--sub': cellMine ? 0 : sub, '--subs': cellMine ? 1 : subs, '--mult': cellMine ? ME_SCALE : 1 }
+      : { ['--i' as string]: index }
+  ) as CSSProperties;
+  return (
+    <div ref={(el) => register(id, el)} className={`car${offline ? ' offline' : ''}${team ? ` tm-${team}` : ''}${field && isMe ? ' me' : ''}`} style={style}>
+      {isMe && <div className="aura" />}
+      {field && isMe && <div className="me-frame" aria-hidden />}
+      <div className="trail" />
+      <div className="flame" />
+      <div className="nitro-jet" />
+      <div className="beam" />
+      <Vehicle index={vehicle} className="vehicle" />
+      {isMe ? (
+        <div className="you-tag">
+          {field ? (
+            <>
+              <b>YOU</b> · {myName}
+              <i className="rk">{myRank ?? '·'}</i>
+            </>
+          ) : (
+            'You'
+          )}
+        </div>
+      ) : (
+        <div className="name-tag">
+          {field && <b className="rk">{rank ?? '·'}</b>}
+          <span className="nm">{name}</span>
+        </div>
+      )}
+      {isMe && boomSeq > 0 && <Boom key={boomSeq} />}
+    </div>
+  );
+});
+
 /**
  * Scenery + road + cars. Cars are positioned straight from the engine in a requestAnimationFrame loop
  * (no React re-render per frame). The camera follows the local player; rivals are drawn relative to you,
@@ -112,6 +177,11 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
   const stripes = useRef<HTMLElement[]>([]);
   const carRefs = useRef(new Map<string, HTMLDivElement>());
   const fx = useRef(new Map<string, CarFx>());
+  const registerCar = useCallback((id: string, el: HTMLDivElement | null) => {
+    if (el) carRefs.current.set(id, el);
+    else carRefs.current.delete(id);
+  }, []);
+  const lastRoad = useRef({ dash: '', pool: '', streak: '' });
   // crowdW = width of one crowd tile, boardsP = length of one repeating set of sponsor boards (both in px): the scenery
   // is slid by the player's progress modulo these, so it loops without a seam.
   const metrics = useRef({ w: 800, h: 500, fl: 0, laneH: 56, crowdW: 0, boardsP: 0 });
@@ -208,7 +278,8 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
 
   // full field: the lane lines and kerbs that slide with the road (written directly, see paint)
   useEffect(() => {
-    stripes.current = geo ? [...(roadRef.current?.querySelectorAll<HTMLElement>('.lane-line, .kerb') ?? [])] : [];
+    stripes.current = [...(roadRef.current?.querySelectorAll<HTMLElement>('.lane-line, .kerb') ?? [])];
+    lastRoad.current = { dash: '', pool: '', streak: '' };
   }, [geo?.total]);
 
   useEffect(() => {
@@ -352,9 +423,26 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
         }
         const x = disp * ppc - stagger - camX - carW * size + park;
         if (g) xOf.current.set(id, x);
-        el.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
+        const tf = `translate3d(${x.toFixed(1)}px,0,0)`;
         const wpm = id === engine.meId ? engine.wpmSmooth : (r?.wpm ?? 0);
-        el.style.setProperty('--f', Math.min(1.15, wpm / 80).toFixed(2));
+        // only what changed is written: every write to a car re-styles all of its parts
+        // in a full field, a car without full effects only shows its speed coarsely (a short trail, its name tag's offset): coarse steps
+        // there mean its whole drawing is re-styled a few times a race instead of several times a second
+        const steps = g && id !== engine.meId && !classOf.current.lit.has(id) ? 4 : 20;
+        const fStr = (Math.round(Math.min(1.15, wpm / 80) * steps) / steps).toFixed(2);
+        let s = fx.current.get(id);
+        if (!s) {
+          s = { disp, k: 0, kStr: '', nStr: '', fStr: '', tf: '', rolling: false, nitro: false, side: 0, passUntil: 0, park: 0 };
+          fx.current.set(id, s);
+        }
+        if (tf !== s.tf) {
+          s.tf = tf;
+          el.style.transform = tf;
+        }
+        if (fStr !== s.fStr) {
+          s.fStr = fStr;
+          el.style.setProperty('--f', fStr);
+        }
         paintFx(id, el, disp, wpm, now, dt);
       });
 
@@ -363,16 +451,20 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
       const dash = `${(-(engine.scroll % 64)).toFixed(1)}px`;
       const pool = `${(-(engine.scroll % 384)).toFixed(1)}px`; // the floodlight pools on the asphalt repeat every 384 px
       const streak = String(Math.max(0, Math.min(1, (engine.wpmSmooth - 55) / 35)).toFixed(2));
-      if (g) {
-        // With forty cars on the road a custom property written on it would be re-computed for every part of every car, every frame:
-        // here the values go straight to the few elements that use them, and the cars are not touched.
+      // A custom property written on the road would be re-computed for every part of every car, every frame: the values go straight to
+      // the few elements that show them (the asphalt, the lane lines and kerbs, the streaks), and only when they change.
+      const lr = lastRoad.current;
+      if (pool !== lr.pool) {
+        lr.pool = pool;
         road.style.backgroundPosition = `${pool} 0, ${pool} 0, 0 0, 0 0, 0 0, 0 0`;
+      }
+      if (dash !== lr.dash) {
+        lr.dash = dash;
         for (const el of stripes.current) el.style.backgroundPosition = `${dash} 0`;
+      }
+      if (streak !== lr.streak) {
+        lr.streak = streak;
         if (streaksRef.current) streaksRef.current.style.opacity = streak;
-      } else {
-        road.style.setProperty('--dash-x', dash);
-        road.style.setProperty('--pool-x', pool);
-        road.style.setProperty('--streak', streak);
       }
       // Parallax: the stands are far away (slow), the sponsor boards stand at the track edge (nearly road speed).
       if (crowdRef.current && crowdW > 0) crowdRef.current.style.transform = `translate3d(${((-(engine.scroll * 0.35)) % crowdW).toFixed(1)}px,0,0)`;
@@ -382,11 +474,7 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
     // lights its nitro (--n and the .nitro class), and a car that swaps places with mine gets a short .pass flash. Only classes
     // and CSS variables change (and only when their value does), so this is cheap and never touches React.
     const paintFx = (id: string, el: HTMLDivElement, disp: number, wpm: number, now: number, dt: number) => {
-      let s = fx.current.get(id);
-      if (!s) {
-        s = { disp, k: 0, kStr: '', nStr: '', rolling: false, nitro: false, side: 0, passUntil: 0, park: 0 };
-        fx.current.set(id, s);
-      }
+      const s = fx.current.get(id)!;
       const step = disp - s.disp;
       s.disp = disp;
       const field = !!geoRef.current;
@@ -394,8 +482,9 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
       const flares = !field || id === engine.meId || classOf.current.lit.has(id);
       s.k = flares ? Math.min(1, s.k * Math.exp(-dt * 7) + Math.max(0, Math.min(3, step)) * 0.9) : 0;
       const n = Math.max(0, Math.min(1, (wpm - 38) / 55));
-      const kStr = s.k.toFixed(2);
-      const nStr = n.toFixed(2);
+      // rounded: a value that changes a little every frame would re-time the flame and wheel animations every frame
+      const kStr = (Math.round(s.k * 10) / 10).toFixed(1);
+      const nStr = (Math.round(n * 20) / 20).toFixed(2);
       if (kStr !== s.kStr) {
         s.kStr = kStr;
         el.style.setProperty('--k', kStr);
@@ -425,9 +514,9 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
           // side 1: this car just went past me; side −1: I just went past it
           const who = side === 1 ? el : carRefs.current.get(meId);
           if (who) {
+            // restart the flash on the next frame (reading offsetWidth here would force a layout of the whole page mid-frame)
             who.classList.remove('pass');
-            void who.offsetWidth; // restart the animation if it is already playing
-            who.classList.add('pass');
+            requestAnimationFrame(() => who.classList.add('pass'));
             const mineFx = fx.current.get(side === 1 ? id : meId);
             if (mineFx) mineFx.passUntil = now + 900;
           }
@@ -472,12 +561,8 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
         ref={roadRef}
         style={geo ? ({ '--rows': geo.rows, '--total': geo.total, '--subs': geo.subs, '--s': geo.scale, '--mult': ME_SCALE } as CSSProperties) : undefined}
       >
-        {geo && (
-          <>
-            <i className="kerb kerb-t" />
-            <i className="kerb kerb-b" />
-          </>
-        )}
+        <i className="kerb kerb-t" />
+        <i className="kerb kerb-b" />
         {/* the lanes, cars and finish line are one layer: in "Driver focus" it is taller than the road and scrolls to keep my lane in the middle */}
         <div className={geo ? 'lanes-layer' : 'lanes-plain'} ref={layerRef}>
           {geo && geo.mine && <div className="my-lane" style={{ top: `calc(var(--fl) * ${geo.myRow})` }} aria-hidden />}
@@ -509,48 +594,28 @@ export function Track({ players, meId, banner, overlay, lanes, boomSeq }: Props)
               if (!id) return null;
               const p = byId.get(id);
               const isMe = id === meId;
-              const cell = cells.get(id);
-              const style = (
-                geo && cell
-                  ? { '--row': cell.row, '--sub': cell.mine ? 0 : (subOf.current.get(id) ?? startSubRow(cell.slot, geo.subs)), '--subs': cell.mine ? 1 : geo.subs, '--mult': cell.mine ? ME_SCALE : 1 }
-                  : { ['--i' as string]: i }
-              ) as CSSProperties;
+              const cell = geo ? cells.get(id) : undefined;
               return (
-                <div
+                <CarView
                   key={id}
-                  ref={(el) => {
-                    if (el) carRefs.current.set(id, el);
-                    else carRefs.current.delete(id);
-                  }}
-                  className={`car${p && !p.connected ? ' offline' : ''}${geo && p?.team ? ` tm-${p.team}` : ''}${geo && isMe ? ' me' : ''}`}
-                  style={style}
-                >
-                  {isMe && <div className="aura" />}
-                  {geo && isMe && <div className="me-frame" aria-hidden />}
-                  <div className="trail" />
-                  <div className="flame" />
-                  <div className="nitro-jet" />
-                  <div className="beam" />
-                  <Vehicle index={p?.vehicle ?? 0} className="vehicle" />
-                  {isMe ? (
-                    <div className="you-tag">
-                      {geo ? (
-                        <>
-                          <b>YOU</b> · {myName}
-                          <i className="rk">{myRank ?? '·'}</i>
-                        </>
-                      ) : (
-                        'You'
-                      )}
-                    </div>
-                  ) : (
-                    <div className="name-tag">
-                      {geo && <b className="rk">{ranks?.get(id) ?? '·'}</b>}
-                      <span className="nm">{p?.name ?? '—'}</span>
-                    </div>
-                  )}
-                  {isMe && boomSeq > 0 && <Boom key={boomSeq} />}
-                </div>
+                  id={id}
+                  index={i}
+                  register={registerCar}
+                  vehicle={p?.vehicle ?? 0}
+                  name={p?.name ?? '—'}
+                  team={geo ? (p?.team ?? null) : null}
+                  offline={!!p && !p.connected}
+                  isMe={isMe}
+                  field={!!geo}
+                  row={cell?.row ?? 0}
+                  cellMine={!!cell?.mine}
+                  sub={cell && !cell.mine && geo ? (subOf.current.get(id) ?? startSubRow(cell.slot, geo.subs)) : 0}
+                  subs={geo?.subs ?? 1}
+                  rank={geo ? ranks?.get(id) : undefined}
+                  myName={isMe ? myName : ''}
+                  myRank={isMe ? myRank : undefined}
+                  boomSeq={isMe ? boomSeq : 0}
+                />
               );
             })}
           </div>

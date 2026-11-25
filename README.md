@@ -109,7 +109,7 @@ Tech Trivia is on.
    host presses **Start the challenge**; each of the **8 rounds** is run by the host, who **chooses only the team** (the three teams
    are shown with how many are here and how many rounds each has played). The moment a team is chosen a **spinner picks one of its
    players at random** — a reel of the team's names that spins on every screen (timed from the server's clock, so everyone sees the same
-   spin) and stops on the server's pick, which is then highlighted ("Selected!"). **The host cannot choose the player.** Then **Start
+   spin) and stops on the server's pick, which is then highlighted (“Selected!"). **The host cannot choose the player** — but if the picked person is away, **Re-spin** picks someone else from the same team (never anyone already skipped that round, and it costs nobody a turn). Then **Start
    round** — the picked player's name and team now fill every screen and the pose is still hidden — **Reveal the pose**, and the player
    copies it on the call while everyone watches. How the spinner picks: only a connected participant of that team (never the host,
    never anyone who has left or dropped out); **nobody is picked again until everyone eligible on the team has had a turn** (random
@@ -128,10 +128,11 @@ Tech Trivia is on.
    has is dealt by the server and sent to the screens only when the host reveals it.
 3. **Tech Trivia** — **5 questions** per quiz, each from a different topic (Python, AI, SQL, Git, Cloud, general software; bank of 24 in
    `server/data/trivia-bank.ts`), one at a time with four options and a 20 s timer. Everyone answers on their own screen; an answer
-   is final. A correct answer is worth **100 + up to 100 for speed**; a team's score for a question is the **average** of its players'
-   points (non-answers count 0), so a bigger team has no advantage. The question closes when everyone has answered, the time is up or
-   the host reveals it; only then does the server send the right answer (with an explanation and how many picked each option). Final
-   screen: team leaderboard (a tie is a tie) and the top players.
+   is final. **First correct answer wins 10 points for your team**: per question only the earliest correct answer (by the server's
+   clock) scores; every other answer, right or wrong, scores 0, and nobody scores if nobody gets it right. The question closes when
+   everyone has answered, the time is up or the host reveals it; only then does the server send the right answer (with an
+   explanation, how many picked each option, and who was first). Final screen: team leaderboard (a tie is a tie) and the top players
+   (by questions won).
 
 **Scores.** Each activity keeps its **own** team points (shown on its card on the dashboard). The **overall leaderboard** adds up
 **placements** — in every activity that has scored, 1st = 3, 2nd = 2, 3rd = 1 (equal scores share a place) — because the games score

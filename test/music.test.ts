@@ -5,6 +5,12 @@ import { afterEach, describe, mock, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createMusic, DUCK_FACTOR, MUSIC_PREF_KEY, MUSIC_SRC, MUSIC_VOLUME, MUSIC_VOLUME_KEY, type AudioLike, type MusicEnv } from '../src/audio/controller';
 
+/** Move the mocked clock forward in small steps, like real time: a timer set while one fires still runs in this window. */
+const advance = (ms: number) => {
+  for (let done = 0; done < ms; done += 10) mock.timers.tick(Math.min(10, ms - done));
+};
+
+
 // The background-music controller with a fake <audio> element, fake storage and fake user gestures, under virtual time;
 // then facts about the shipped MP3 and how the app is wired to it.
 
@@ -106,13 +112,13 @@ describe('background music controller', () => {
     return current;
   };
 
-  test('the default volume is a comfortable background level: audible, but well below full volume', () => {
-    assert.ok(MUSIC_VOLUME >= 0.15 && MUSIC_VOLUME <= 0.35, String(MUSIC_VOLUME));
+  test('the default volume is a quiet bed under the race: audible, but low', () => {
+    assert.ok(MUSIC_VOLUME >= 0.08 && MUSIC_VOLUME <= 0.15, String(MUSIC_VOLUME));
   });
 
-  test('starts on init: one looping element with the full-length track, volume fades in from 0 (no jump) to the background level', async () => {
+  test('starts when a race begins: one looping element with the full-length track, volume fades in from 0 (no jump) to the background level', async () => {
     const s = make(null, true);
-    s.music.init();
+    s.music.setActive(true);
     await settle();
     assert.equal(s.audios.length, 1, 'exactly one audio element');
     const a = s.audios[0]!;
@@ -121,7 +127,7 @@ describe('background music controller', () => {
     assert.equal(a.paused, false);
     assert.deepEqual(s.music.getState(), { status: 'playing', on: true });
     assert.equal(a.volumes[0], 0, 'created silent');
-    mock.timers.tick(2000);
+    advance(2000);
     assert.equal(a.volume, MUSIC_VOLUME, 'ends at the background level');
     const ramp = a.volumes.slice(1);
     for (let i = 1; i < ramp.length; i++) {
@@ -132,15 +138,15 @@ describe('background music controller', () => {
 
   test('only ever one audio element, however often it is toggled, re-enabled or re-initialised', async () => {
     const s = make();
-    s.music.init();
-    s.music.init();
+    s.music.setActive(true);
+    s.music.setActive(true);
     await settle();
     for (let i = 0; i < 4; i++) {
       s.music.toggle();
-      mock.timers.tick(1000);
+      advance(1000);
       await settle();
       s.music.toggle();
-      mock.timers.tick(2000);
+      advance(2000);
       await settle();
     }
     s.music.enable();
@@ -150,7 +156,7 @@ describe('background music controller', () => {
 
   test('autoplay blocked → waits (icon off, control available); the first gesture starts it; the speaker click itself is left to the speaker', async () => {
     const s = make(null, false, 'blocked'); // the browser refuses until a gesture
-    s.music.init();
+    s.music.setActive(true);
     await settle();
     assert.deepEqual(s.music.getState(), { status: 'blocked', on: false });
     assert.equal(s.gestureHandlers.size, 1, 'listening for a gesture');
@@ -166,7 +172,7 @@ describe('background music controller', () => {
 
   test('clicking the speaker while playback is blocked ENABLES the music (it never mutes something that is not playing)', async () => {
     const s = make(null, false, 'blocked');
-    s.music.init();
+    s.music.setActive(true);
     await settle();
     assert.equal(s.music.getState().status, 'blocked');
     s.audios[0]!.playMode = 'ok'; // a click is a gesture: the browser now allows it
@@ -178,15 +184,15 @@ describe('background music controller', () => {
 
   test('mute: the icon flips at once, the volume fades out (no jump) and only then does it pause; the choice is stored', async () => {
     const s = make(null, true);
-    s.music.init();
+    s.music.setActive(true);
     await settle();
-    mock.timers.tick(2000);
+    advance(2000);
     const a = s.audios[0]!;
     s.music.toggle();
     assert.deepEqual(s.music.getState(), { status: 'off', on: false }, 'immediate');
     assert.equal(s.store.get(MUSIC_PREF_KEY), 'off');
     assert.equal(a.paused, false, 'still fading');
-    mock.timers.tick(600);
+    advance(600);
     assert.equal(a.volume, 0);
     assert.equal(a.paused, true);
     const fade = a.volumes.slice(a.volumes.lastIndexOf(MUSIC_VOLUME));
@@ -199,7 +205,7 @@ describe('background music controller', () => {
 
   test('a muted player is NEVER played again unprompted — not on load, not on a gesture, not after a refresh', async () => {
     const s = make('off');
-    s.music.init();
+    s.music.setActive(true);
     await settle();
     assert.equal(s.audios.length, 0, 'no audio element is even created (no download)');
     assert.deepEqual(s.music.getState(), { status: 'off', on: false });
@@ -210,12 +216,12 @@ describe('background music controller', () => {
     s.music.dispose();
     // …and the same through a mute → "refresh" cycle (a second controller reading the same storage)
     const t = setup();
-    t.music.init();
+    t.music.setActive(true);
     await settle();
     t.music.mute();
-    mock.timers.tick(600);
+    advance(600);
     const reloaded = createMusic(t.env);
-    reloaded.init();
+    reloaded.setActive(true);
     await settle();
     assert.equal(reloaded.getState().on, false);
     assert.equal(t.audios.length, 1, 'the reloaded controller created nothing');
@@ -225,24 +231,24 @@ describe('background music controller', () => {
 
   test('un-muting removes the stored choice, starts from silence and fades in', async () => {
     const s = make('off', true);
-    s.music.init();
+    s.music.setActive(true);
     s.music.toggle();
     await settle();
     assert.equal(s.store.has(MUSIC_PREF_KEY), false);
     const a = s.audios[0]!;
     assert.equal(a.volumes[0], 0, 'starts silent');
     assert.deepEqual(s.music.getState(), { status: 'playing', on: true });
-    mock.timers.tick(2000);
+    advance(2000);
     assert.equal(a.volume, MUSIC_VOLUME);
   });
 
   test('muting while play() is still pending: it never becomes audible', async () => {
     const s = make();
-    s.music.init();
+    s.music.setActive(true);
     const a = s.audios[0]!;
     // (init already awaited a normal play(); do it again through enable with a held request)
     s.music.mute();
-    mock.timers.tick(600);
+    advance(600);
     a.hold = new Promise<void>((res) => (a.release = res));
     s.music.enable();
     assert.equal(s.music.getState().status, 'starting');
@@ -255,11 +261,11 @@ describe('background music controller', () => {
 
   test('if the file cannot play the game carries on: no throw, one warning, no retry storm on every gesture', async () => {
     const s = make();
-    s.music.init();
+    s.music.setActive(true);
     s.audios[0]!.paused = true;
     s.audios[0]!.playMode = 'error';
     s.music.mute();
-    mock.timers.tick(600);
+    advance(600);
     s.music.enable();
     await settle();
     assert.equal(s.music.getState().status, 'error');
@@ -279,7 +285,7 @@ describe('background music controller', () => {
 
   test('a pause by the browser/OS (headphones, a call) while the player wanted music: icon shows it is off, the next gesture resumes, nothing is stored', async () => {
     const s = make();
-    s.music.init();
+    s.music.setActive(true);
     await settle();
     s.audios[0]!.pause(); // not via mute()
     assert.deepEqual(s.music.getState(), { status: 'blocked', on: false });
@@ -294,7 +300,7 @@ describe('background music controller', () => {
     const base = setup();
     const env: MusicEnv = { ...base.env, storage: { get: () => { throw new Error('denied'); }, set: () => { throw new Error('denied'); }, remove: () => { throw new Error('denied'); } } };
     const music = createMusic(env);
-    music.init();
+    music.setActive(true);
     await settle();
     assert.equal(music.getState().on, true);
     music.mute();
@@ -307,64 +313,56 @@ describe('background music controller', () => {
   });
 
   // ---------------------------------------------------------------------------------------------- entering the game
-  test('ensure() (called on entering the lobby / race): retries a blocked start once per call, and is a no-op when playing or muted', async () => {
-    const s = make(null, false, 'blocked');
-    s.music.init();
+  test('plays ONLY during a race: silent before it, fades out and pauses when it ends, and starts again for the next race', async () => {
+    const s = make();
     await settle();
-    assert.equal(s.music.getState().status, 'blocked');
+    assert.equal(s.audios.length, 0, 'nothing is created or played before a race');
+    assert.deepEqual(s.music.getState(), { status: 'idle', on: false });
+    s.music.setActive(true); // the countdown starts
+    await settle();
+    advance(2000);
     const a = s.audios[0]!;
-    const calls = a.playCalls;
-    s.music.ensure(); // still refused (no gesture yet): stays blocked, still waiting for one
-    await settle();
-    assert.equal(a.playCalls, calls + 1);
-    assert.equal(s.music.getState().status, 'blocked');
-    assert.equal(s.gestureHandlers.size, 1, 'still listening for the first gesture');
-    a.playMode = 'ok'; // the click that got the player into the game is now behind them
-    s.music.ensure();
-    await settle();
     assert.deepEqual(s.music.getState(), { status: 'playing', on: true });
-    const playing = a.playCalls;
-    s.music.ensure();
-    s.music.ensure();
+    assert.equal(a.volume, MUSIC_VOLUME);
+    s.music.setActive(false); // the race is over (or this driver finished)
+    assert.deepEqual(s.music.getState(), { status: 'idle', on: false });
+    advance(600);
+    assert.equal(a.volume, 0, 'faded out, never cut');
+    assert.equal(a.paused, true);
+    for (const h of s.gestureHandlers) h(false); // a click on the results page never brings it back
     await settle();
-    assert.equal(a.playCalls, playing, 'already playing: nothing happens');
-    assert.equal(s.audios.length, 1, 'never a second element');
-
-    const muted = setup('off');
-    muted.music.init();
-    muted.music.ensure();
+    assert.equal(a.paused, true);
+    s.music.setActive(true); // the next race
     await settle();
-    assert.equal(muted.audios.length, 0, 'a muted player is not started by entering the game');
-    assert.equal(muted.music.getState().on, false);
-    muted.music.dispose();
+    advance(2000);
+    assert.equal(a.paused, false);
+    assert.equal(s.audios.length, 1, 'still one element');
   });
 
-  test('ensure() recovers from a failed load by setting the source again (and does so once per call, never in a loop)', async () => {
+  test('a muted player stays muted across races; un-muting between races only takes effect when the next race starts', async () => {
     const s = make();
-    s.music.init();
+    s.music.setActive(true);
     await settle();
-    const a = s.audios[0]!;
-    a.paused = true;
-    a.playMode = 'error';
+    advance(2000);
     s.music.mute();
-    mock.timers.tick(600);
+    advance(600);
+    s.music.setActive(false);
+    s.music.setActive(true);
+    await settle();
+    assert.equal(s.music.getState().on, false, 'the choice is kept for the next race');
+    s.music.setActive(false);
     s.music.enable();
     await settle();
-    assert.equal(s.music.getState().status, 'error');
-    let srcSets = 0;
-    let src = a.src;
-    Object.defineProperty(a, 'src', { get: () => src, set: (v: string) => { srcSets++; src = v; }, configurable: true });
-    a.playMode = 'ok';
-    s.music.ensure();
+    assert.deepEqual(s.music.getState(), { status: 'idle', on: false }, 'wanted, but no race is running');
+    s.music.setActive(true);
     await settle();
-    assert.equal(srcSets, 1, 'source assigned again so the browser reloads the file');
-    assert.equal(src, MUSIC_SRC);
+    advance(2000);
     assert.deepEqual(s.music.getState(), { status: 'playing', on: true });
   });
 
   test('isEnabled() is the player\'s choice: true while autoplay is blocked, false only once muted', async () => {
     const s = make(null, false, 'blocked');
-    s.music.init();
+    s.music.setActive(true);
     await settle();
     assert.equal(s.music.getState().on, false);
     assert.equal(s.music.isEnabled(), true, 'wants music even though the browser is holding it back');
@@ -378,20 +376,20 @@ describe('background music controller', () => {
   // ---------------------------------------------------------------------------------------------- under a sound effect
   test('duck: the music glides down under a sound effect and back up by itself afterwards — never a jump, never stuck quiet', async () => {
     const s = make(null, true);
-    s.music.init();
+    s.music.setActive(true);
     await settle();
-    mock.timers.tick(2000);
+    advance(2000);
     const a = s.audios[0]!;
     assert.equal(a.volume, MUSIC_VOLUME);
     const before = a.volumes.length;
     s.music.duck(3000);
-    mock.timers.tick(400);
+    advance(400);
     assert.ok(Math.abs(a.volume - MUSIC_VOLUME * DUCK_FACTOR) < 1e-9, `ducked to ${a.volume}`);
     assert.ok(a.volume < MUSIC_VOLUME / 2, 'clearly lower while the effects play');
-    mock.timers.tick(2500);
+    advance(2500);
     assert.ok(Math.abs(a.volume - MUSIC_VOLUME * DUCK_FACTOR) < 1e-9, 'still lowered until the hold is over');
-    mock.timers.tick(700); // hold over (3000) → released
-    mock.timers.tick(1500);
+    advance(700); // hold over (3000) → released
+    advance(1500);
     assert.equal(a.volume, MUSIC_VOLUME, 'restored without anyone asking');
     const ramp = a.volumes.slice(before);
     for (let i = 1; i < ramp.length; i++) assert.ok(Math.abs(ramp[i]! - ramp[i - 1]!) < 0.03, `no jump (${ramp[i - 1]} → ${ramp[i]})`);
@@ -401,50 +399,50 @@ describe('background music controller', () => {
 
   test('unduck() brings the music back at once (leaving the race screen), and duck(…) again restarts the hold', async () => {
     const s = make(null, true);
-    s.music.init();
+    s.music.setActive(true);
     await settle();
-    mock.timers.tick(2000);
+    advance(2000);
     const a = s.audios[0]!;
     s.music.duck(10_000);
-    mock.timers.tick(400);
+    advance(400);
     s.music.unduck();
-    mock.timers.tick(1500);
+    advance(1500);
     assert.equal(a.volume, MUSIC_VOLUME);
     s.music.duck(500);
-    mock.timers.tick(300);
+    advance(300);
     s.music.duck(500); // a second effect: the hold starts over
-    mock.timers.tick(400);
+    advance(400);
     assert.ok(a.volume < MUSIC_VOLUME / 2, 'still ducked 700 ms after the first duck');
-    mock.timers.tick(200);
-    mock.timers.tick(1500);
+    advance(200);
+    advance(1500);
     assert.equal(a.volume, MUSIC_VOLUME);
   });
 
   test('ducking while muted, or before the music has started, never makes sound; a start during a duck fades in to the ducked level', async () => {
     const m = make(null, true);
-    m.music.init();
+    m.music.setActive(true);
     await settle();
-    mock.timers.tick(2000);
+    advance(2000);
     m.music.mute();
-    mock.timers.tick(600);
+    advance(600);
     m.music.duck(2000);
     m.music.unduck();
-    mock.timers.tick(2000);
+    advance(2000);
     assert.equal(m.audios[0]!.volume, 0, 'muted stays silent through duck and unduck');
     assert.equal(m.audios[0]!.paused, true);
     m.music.dispose();
 
     const b = make(null, true, 'blocked'); // not started yet (autoplay blocked)
-    b.music.init();
+    b.music.setActive(true);
     await settle();
     b.music.duck(5000);
     b.audios[0]!.playMode = 'ok';
     b.fire(false); // the first gesture starts it while an effect is playing
     await settle();
-    mock.timers.tick(2000);
+    advance(2000);
     assert.ok(Math.abs(b.audios[0]!.volume - MUSIC_VOLUME * DUCK_FACTOR) < 1e-9, 'fades in to the ducked level');
-    mock.timers.tick(3500);
-    mock.timers.tick(1500);
+    advance(3500);
+    advance(1500);
     assert.equal(b.audios[0]!.volume, MUSIC_VOLUME, 'and comes up to full once the effect is over');
   });
 
@@ -454,7 +452,7 @@ describe('background music controller', () => {
     s.music.subscribe(() => calls++);
     const first = s.music.getState();
     assert.equal(s.music.getState(), first);
-    s.music.init();
+    s.music.setActive(true);
     await settle();
     const playing = s.music.getState();
     assert.notEqual(playing, first);
@@ -468,9 +466,9 @@ describe('background music controller', () => {
 
   test('setVolume / getVolume: adjusts audio volume immediately, persists to storage, mutes at 0, and unmutes when raised above 0', async () => {
     const s = make();
-    s.music.init();
+    s.music.setActive(true);
     await settle();
-    mock.timers.tick(2000);
+    advance(2000);
     const a = s.audios[0]!;
     assert.equal(s.music.getVolume(), MUSIC_VOLUME);
 
@@ -488,7 +486,7 @@ describe('background music controller', () => {
     s.music.setVolume(0);
     assert.equal(s.music.getVolume(), 0);
     assert.equal(s.music.getState().on, false);
-    mock.timers.tick(600);
+    advance(600);
     assert.equal(a.paused, true);
 
     // Unmuting via toggle() after dragging to 0 restores the last non-zero volume (0.65)
@@ -496,12 +494,12 @@ describe('background music controller', () => {
     await settle();
     assert.equal(s.music.getState().on, true);
     assert.equal(s.music.getVolume(), 0.65);
-    mock.timers.tick(2000);
+    advance(2000);
     assert.equal(a.volume, 0.65);
 
     // Mute explicitly, then drag slider above 0 → unmutes and plays at the new volume immediately
     s.music.mute();
-    mock.timers.tick(600);
+    advance(600);
     assert.equal(s.music.getState().on, false);
     s.music.setVolume(0.4);
     await settle();
@@ -559,8 +557,8 @@ describe('the shipped track', () => {
     const out = recipe.match(/afade=t=out:st=([\d.]+):d=([\d.]+)/);
     assert.ok(out, 'soft end');
     assert.ok(Math.abs(Number(out[1]) + Number(out[2]) - TRACK_SECONDS) < 0.2, `fade-out ${out[1]}+${out[2]} ends at the end of the track`);
-    // the loudness is applied on top of the master by MUSIC_VOLUME; at 0.25 a −14.7 LUFS master plays at about −27 LUFS
-    assert.ok(MUSIC_VOLUME === 0.25);
+    // the loudness is applied on top of the master by MUSIC_VOLUME; at 0.12 a −14.7 LUFS master plays at about −33 LUFS
+    assert.ok(MUSIC_VOLUME === 0.12);
   });
 
   test('the old 20-second clips are gone and the project ships no other audio or video: no original recording; only the track and the two short countdown cues', () => {
@@ -589,15 +587,15 @@ describe('how the app uses it', () => {
     for (const f of ['src/App.tsx', 'src/components/MusicToggle.tsx', 'src/components/SiteHeader.tsx', 'src/components/race/Hud.tsx', 'src/screens/Landing.tsx', 'src/screens/Lobby.tsx', 'src/screens/Race.tsx']) {
       assert.doesNotMatch(read(f), /new Audio\(|createElement\('audio'\)|<audio/, f);
     }
-    assert.match(read('src/App.tsx'), /music\.init\(\)/);
+    assert.match(read('src/App.tsx'), /music\.setActive\(raceOn\)/);
+    assert.match(read('src/App.tsx'), /room\.activity === 'typedrive'[^;]*room\.phase === 'countdown' \|\| room\.phase === 'racing'\) && !showResults/, 'only while a TypeDrive race is on this screen');
     assert.match(music, /export const music = createMusic\(/, 'a module-level singleton, outside React');
   });
 
-  test('the speaker toggle is the last item of the header on the landing page, the lobby and the race screen, with accessible labels', () => {
-    const site = read('src/components/SiteHeader.tsx');
-    assert.match(site, /<MusicToggle \/>\s*<\/div>\s*<\/header>/, 'last child of the header (landing + lobby)');
+  test('the speaker toggle is only on the race screens (where music plays), the last item of the race header, with accessible labels', () => {
+    assert.doesNotMatch(read('src/components/SiteHeader.tsx'), /MusicToggle/, 'no speaker where no music ever plays');
     assert.match(read('src/components/race/Hud.tsx'), /<MusicToggle variant="hud" \/>\s*<\/div>\s*<\/header>/, 'last child of the race header');
-    for (const f of ['src/screens/Landing.tsx', 'src/screens/Lobby.tsx']) assert.match(read(f), /<SiteHeader/, f);
+    assert.match(read('src/screens/Spectator.tsx'), /<MusicToggle variant="hud" \/>/, 'and the host / spectator view of the race');
     const toggle = read('src/components/MusicToggle.tsx');
     assert.match(toggle, /'Mute music'/);
     assert.match(toggle, /'Enable music'/);

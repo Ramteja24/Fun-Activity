@@ -3,7 +3,6 @@ import { BRAND } from '../brand';
 import { AdminControl } from './AdminLogin';
 import { useGame } from '../store';
 import { Logo } from './Logo';
-import { MusicToggle } from './MusicToggle';
 import { PlatformLogo } from './PlatformLogo';
 
 /** The dashboard's logo is a little larger than on the other screens. */
@@ -47,8 +46,6 @@ export function SiteHeader({
             <i aria-hidden />
             <span>{online ? 'Live' : 'Reconnecting…'}</span>
           </span>
-          {/* the music toggle is always the last item of the header, on every screen */}
-          <MusicToggle />
         </div>
       </header>
     </div>

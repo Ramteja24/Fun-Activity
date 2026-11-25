@@ -209,6 +209,9 @@ export function createApp(opts: AppOptions = {}): App {
       send(msg: ServerMsg) {
         if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
       },
+      sendRaw(json: string) {
+        if (ws.readyState === ws.OPEN) ws.send(json);
+      },
       close() {
         ws.close();
       },

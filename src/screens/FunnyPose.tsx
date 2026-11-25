@@ -204,6 +204,11 @@ function Round({ p, title, teams }: { p: PoseInfo } & Slots) {
             <span>{p.stage === 'selected' && player ? `Start round ${p.round} · ${player.name}` : p.stage === 'spin' ? 'Picking a player…' : 'Choose a team'}</span>
           </button>
         )}
+        {p.stage === 'selected' && p.pool.length > 1 && (
+          <button className="btn btn-secondary btn-lg" onClick={() => poseOp({ op: 'respin' })} title="Picked person is away? Pick someone else">
+            <span>Re-spin</span>
+          </button>
+        )}
         {p.stage === 'ready' && (
           <button className="btn btn-primary btn-lg" onClick={() => poseOp({ op: 'reveal' })}>
             <span>Reveal the pose</span>

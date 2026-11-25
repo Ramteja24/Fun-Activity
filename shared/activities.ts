@@ -48,14 +48,13 @@ export const POSE_SPIN_MS = 5200;
 // ------------------------------------------------------------------------------------------------ Tech Trivia
 export const TRIVIA_QUESTIONS = 5;
 export const TRIVIA_LIMIT_MS = 20_000;
-/** A correct answer is worth this much, plus up to TRIVIA_SPEED more for answering early. */
-export const TRIVIA_BASE = 100;
-export const TRIVIA_SPEED = 100;
+/** Per question, only the FIRST correct answer scores: this many points for that player's team. */
+export const TRIVIA_POINTS = 10;
 
 // ------------------------------------------------------------------------------------------------ the overall leaderboard
 /**
- * The three activities score on very different scales (a TypeDrive race can add hundreds of points, a trivia question at most
- * 200), so the overall leaderboard adds up *placements*, not raw points: in each activity that has scored, the team in 1st place
+ * The three activities score on very different scales (a TypeDrive race can add hundreds of points, a trivia question
+ * 10), so the overall leaderboard adds up *placements*, not raw points: in each activity that has scored, the team in 1st place
  * gets 3, 2nd gets 2, 3rd gets 1 (teams level on points share a place, as in the race results). Each activity therefore counts
  * the same, and the raw points stay visible next to it.
  */

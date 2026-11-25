@@ -2,6 +2,8 @@
 // events) is passed in, so it can be tested without a DOM. music.ts wires it to the real browser, once.
 //
 // Rules it enforces:
+//  • it only ever plays during a TypeDrive race (setActive): the countdown and the race itself — never on the dashboard, the
+//    lobby, the results or the other two games;
 //  • one audio element, ever (created on first use, kept for the life of the page — screens come and go, it does not);
 //  • a muted player is never played again unprompted: the choice is stored and read back on every page load;
 //  • browsers block sound until the user interacts, so a blocked start waits for the first gesture and retries;
@@ -13,11 +15,10 @@
 // The server revalidates /music/ on every load (Last-Modified → 304), so replacing the file in place is picked up at once.
 export const MUSIC_SRC = '/music/f1-theme-trimmed.mp3';
 /**
- * Playback volume as a share of the audio element's volume. The file is already a loud master (−14.7 LUFS), so 0.25
- * puts it at about −27 LUFS at the output (measured −28 dBFS RMS in a browser): clearly audible, comfortably in the
- * background. Lower it for a quieter bed.
+ * Playback volume as a share of the audio element's volume. The file is already a loud master (−14.7 LUFS), so 0.12
+ * puts it at about −33 LUFS at the output: a quiet bed under the race that never competes with the call.
  */
-export const MUSIC_VOLUME = 0.25;
+export const MUSIC_VOLUME = 0.12;
 export const MUSIC_PREF_KEY = 'typedrive.music';
 export const MUSIC_VOLUME_KEY = 'typedrive.music.volume';
 const FADE_IN_MS = 1500;
@@ -28,8 +29,11 @@ export const DUCK_FACTOR = 0.35;
 const DUCK_ATTACK_MS = 250;
 const DUCK_RELEASE_MS = 1200;
 
-/** off = muted by the player · blocked = wanted, but the browser needs a gesture first · error = the file would not play */
-export type MusicStatus = 'off' | 'blocked' | 'starting' | 'playing' | 'error';
+/**
+ * off = muted by the player · idle = wanted, but no race is running (nothing plays) · blocked = wanted during a race, but the
+ * browser needs a gesture first · error = the file would not play
+ */
+export type MusicStatus = 'off' | 'idle' | 'blocked' | 'starting' | 'playing' | 'error';
 export interface MusicState {
   status: MusicStatus;
   /** What the speaker icon shows: the music is (or is about to be) audible. */
@@ -62,11 +66,12 @@ export function createMusic(env: MusicEnv) {
   let enabled = readEnabled();
   let volume = readVolume();
   let lastVolume = volume > 0 ? volume : MUSIC_VOLUME;
-  let state = derive(enabled ? 'blocked' : 'off');
+  let state = derive(enabled ? 'idle' : 'off');
+  /** A race is running on this screen: the only time the music plays. */
+  let active = false;
   let audio: AudioLike | null = null;
-  let ramp: ReturnType<typeof setInterval> | null = null;
+  let ramp: ReturnType<typeof setTimeout> | null = null;
   let unarm: (() => void) | null = null;
-  let initialised = false;
   /** 1 normally; DUCK_FACTOR while a sound effect is playing over the music. */
   let duckFactor = 1;
   let duckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -126,8 +131,8 @@ export function createMusic(env: MusicEnv) {
       if (enabled) setStatus('playing');
     });
     a.addEventListener('pause', () => {
-      // paused by the browser/OS (headphones, a call…) while we wanted sound: wait for the next gesture
-      if (enabled && state.status === 'playing') {
+      // paused by the browser/OS (headphones, a call…) mid-race while we wanted sound: wait for the next gesture
+      if (enabled && active && state.status === 'playing') {
         setStatus('blocked');
         arm();
       }
@@ -141,23 +146,25 @@ export function createMusic(env: MusicEnv) {
     return a;
   }
 
-  /** Move the volume to `target` over `ms`, in small eased steps (so nothing ever jumps). */
+  /** Move the volume to `target` over `ms`, in small eased steps (so nothing ever jumps). One step at a time, each scheduling the next. */
   function rampTo(target: number, ms: number, done?: () => void): void {
     const a = audio;
     if (!a) return;
-    if (ramp) clearInterval(ramp);
+    if (ramp) clearTimeout(ramp);
     const from = a.volume;
     const steps = Math.max(1, Math.round(ms / STEP_MS));
     let i = 0;
-    ramp = setInterval(() => {
+    const step = () => {
       i += 1;
       a.volume = i >= steps ? target : from + (target - from) * smooth(i / steps);
       if (i >= steps) {
-        if (ramp) clearInterval(ramp);
         ramp = null;
         done?.();
+        return;
       }
-    }, STEP_MS);
+      ramp = setTimeout(step, STEP_MS);
+    };
+    ramp = setTimeout(step, STEP_MS);
   }
 
   /** Where the music should be right now: the player's volume, lowered while a sound effect is playing. */
@@ -167,7 +174,7 @@ export function createMusic(env: MusicEnv) {
     if (unarm) return;
     unarm = env.onGesture((fromToggle) => {
       // The speaker button decides for itself (a click on it must not both start and then toggle the music).
-      if (fromToggle || !enabled || state.on || state.status === 'error') return;
+      if (fromToggle || !enabled || !active || state.on || state.status === 'error') return;
       void start();
     });
   }
@@ -177,7 +184,7 @@ export function createMusic(env: MusicEnv) {
   }
 
   async function start(immediate = false): Promise<void> {
-    if (!enabled) return;
+    if (!enabled || !active) return;
     const a = ensureAudio();
     if (state.status === 'error') a.src = MUSIC_SRC; // a failed load only retries when the source is set again
     setStatus('starting');
@@ -195,14 +202,14 @@ export function createMusic(env: MusicEnv) {
       }
       return;
     }
-    if (!enabled) {
+    if (!enabled || !active) {
       a.pause();
       return;
     }
     setStatus('playing');
     disarm();
     if (immediate) {
-      if (ramp) clearInterval(ramp);
+      if (ramp) clearTimeout(ramp);
       ramp = null;
       a.volume = level();
     } else {
@@ -220,8 +227,12 @@ export function createMusic(env: MusicEnv) {
     }
     enabled = true;
     writeEnabled(true);
-    arm();
-    void start();
+    if (active) {
+      arm();
+      void start();
+    } else {
+      setStatus('idle');
+    }
     if (volRestored) notify();
   }
   function mute(): void {
@@ -260,15 +271,19 @@ export function createMusic(env: MusicEnv) {
     }
 
     if (ramp) {
-      clearInterval(ramp);
+      clearTimeout(ramp);
       ramp = null;
     }
 
     if (!enabled) {
       enabled = true;
       writeEnabled(true);
-      arm();
-      void start(true);
+      if (active) {
+        arm();
+        void start(true);
+      } else {
+        setStatus('idle');
+      }
       if (changed) notify();
       return;
     }
@@ -282,23 +297,23 @@ export function createMusic(env: MusicEnv) {
   }
 
   return {
-    /** Call once at start-up: tries to play right away (allowed when the browser trusts the page) and otherwise waits for a gesture. */
-    init(): void {
-      if (initialised) return;
-      initialised = true;
-      if (!enabled) return;
-      arm();
-      void start();
-    },
     /**
-     * The player has just entered a screen of the game: if they want music and it is not playing (autoplay was blocked,
-     * or a load failed), try again — once per entry, so a broken file is never retried in a loop. The click that got them
-     * here is a gesture the browser accepts; without one this simply stays `blocked` and the next gesture starts it.
+     * A TypeDrive race is (or is no longer) running on this screen. On: the music starts (or waits for the first gesture the
+     * browser needs). Off: it fades out and pauses — the player's mute choice and volume are kept for the next race.
      */
-    ensure(): void {
-      if (!enabled || state.on) return;
-      arm();
-      void start();
+    setActive(on: boolean): void {
+      if (on === active) return;
+      active = on;
+      if (on) {
+        if (!enabled) return;
+        arm();
+        void start();
+        return;
+      }
+      disarm();
+      if (enabled) setStatus('idle');
+      const a = audio;
+      if (a) rampTo(0, FADE_OUT_MS, () => !active && a.pause());
     },
     toggle(): void {
       if (state.on) mute();
@@ -328,7 +343,7 @@ export function createMusic(env: MusicEnv) {
     },
     /** For tests: stop timers and gesture listeners. */
     dispose(): void {
-      if (ramp) clearInterval(ramp);
+      if (ramp) clearTimeout(ramp);
       ramp = null;
       if (duckTimer) clearTimeout(duckTimer);
       duckTimer = null;

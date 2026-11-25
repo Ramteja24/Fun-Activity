@@ -25,7 +25,15 @@ import { passagesFor } from './passages';
 /** A transport-agnostic connection (a WebSocket in production, a stub in unit tests). */
 export interface Conn {
   send(msg: ServerMsg): void;
+  /** An already-encoded message (a broadcast is encoded once, not once per player). Optional: test fakes only implement `send`. */
+  sendRaw?(json: string): void;
   close(): void;
+}
+
+/** Send a broadcast that has been encoded once; a connection without `sendRaw` gets the decoded message. */
+function sendEncoded(conn: Conn, json: string): void {
+  if (conn.sendRaw) conn.sendRaw(json);
+  else conn.send(JSON.parse(json) as ServerMsg);
 }
 
 export interface Player {
@@ -675,6 +683,9 @@ export class Room {
       case 'begin':
         ok = !!s?.begin();
         break;
+      case 'respin':
+        ok = !!s?.respinSkipping();
+        break;
       case 'reveal':
         ok = !!s?.reveal();
         break;
@@ -846,8 +857,8 @@ export class Room {
   }
 
   broadcastRoom(): void {
-    const msg: ServerMsg = { t: 'room', room: this.roomInfo() };
-    for (const p of this.players.values()) p.conn?.send(msg);
+    const json = JSON.stringify({ t: 'room', room: this.roomInfo() } satisfies ServerMsg);
+    for (const p of this.players.values()) if (p.conn) sendEncoded(p.conn, json);
   }
 
   private broadcastState(now: number): void {
@@ -867,9 +878,9 @@ export class Room {
       Math.round(p.finishMs > 0 ? calcWpm(len, p.finishMs) : liveWpm(p.keyTimes, now, race.goAt)),
       p.finishMs,
     ]);
-    for (const p of this.players.values()) {
-      p.conn?.send({ t: 'state', race: race.id, racers: tuples, ack: p.lastSeq });
-    }
+    // the racers are the same for everyone: encode them once; only the acknowledged keystroke differs per player
+    const head = `{"t":"state","race":${JSON.stringify(race.id)},"racers":${JSON.stringify(tuples)},"ack":`;
+    for (const p of this.players.values()) if (p.conn) sendEncoded(p.conn, `${head}${p.lastSeq}}`);
   }
 
   /** Resume payload for a (re)connecting player. */

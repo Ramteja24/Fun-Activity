@@ -268,9 +268,11 @@ describe('what the screens do with it (source guards)', () => {
     assert.doesNotMatch(track, /Math\.random/);
     assert.match(track, /const hasMe = !engine\.spectating && lanes\.includes\(meId\);/);
     assert.match(track, /const geo: FieldGeometry \| null = engine\.field \? fieldGeometry\(lanes\.length, hasMe\) : null;/);
-    // each car shows its place, its name and its team
-    assert.match(track, /<b className="rk">\{ranks\?\.get\(id\) \?\? '·'\}<\/b>/);
-    assert.match(track, /geo && p\?\.team \? ` tm-\$\{p\.team\}` : ''/);
+    // each car shows its place, its name and its team (a memoised CarView, fed from the engine's ranks and the room's players)
+    assert.match(track, /rank=\{geo \? ranks\?\.get\(id\) : undefined\}/);
+    assert.match(track, /<b className="rk">\{rank \?\? '·'\}<\/b>/);
+    assert.match(track, /team=\{geo \? \(p\?\.team \?\? null\) : null\}/);
+    assert.match(track, /\$\{team \? ` tm-\$\{team\}` : ''\}/);
     // the cars' places on the road come from the engine's racers, and the camera zoom is the engine's
     assert.match(track, /const disp = r \? r\.disp : 0;/);
     assert.match(track, /if \(g\) ppc \*= engine\.zoom;/);

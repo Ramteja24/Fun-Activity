@@ -9,17 +9,16 @@ import {
   placementFor,
   POSE_POINTS,
   POSE_SPIN_MS,
-  TRIVIA_BASE,
   TRIVIA_LIMIT_MS,
+  TRIVIA_POINTS,
   TRIVIA_QUESTIONS,
-  TRIVIA_SPEED,
   type ActivityScore,
 } from '../shared/activities';
 import type { RoomInfo, TriviaInfo } from '../shared/protocol';
 import { TEAM_IDS, zeroPoints, type TeamId } from '../shared/teams';
 import { createApp } from '../server/app';
 import { TRIVIA_BANK } from '../server/data/trivia-bank';
-import { answerPoints, pickQuestions } from '../server/games/trivia';
+import { pickQuestions } from '../server/games/trivia';
 import { Sim, Typist } from './helpers/room-sim';
 import { Client, FAST, newRoom, sleep } from './helpers/ws-client';
 
@@ -95,10 +94,8 @@ describe('picking trivia questions', () => {
     }
   });
 
-  test('speed bonus: 200 for an instant correct answer, 150 at half time, 100 at the buzzer; never outside that range', () => {
-    assert.equal(TRIVIA_BASE, 100);
-    assert.equal(TRIVIA_SPEED, 100);
-    assert.deepEqual([TRIVIA_LIMIT_MS, TRIVIA_LIMIT_MS / 2, 0, -500, TRIVIA_LIMIT_MS * 2].map((r) => answerPoints(r)), [200, 150, 100, 100, 200]);
+  test('a question is worth TRIVIA_POINTS (10) to the team of the first correct answer, and nothing to anyone else', () => {
+    assert.equal(TRIVIA_POINTS, 10);
   });
 });
 
@@ -273,32 +270,28 @@ describe('the dashboard and the activities in a room', () => {
   /** The right option index of the question in play: read from the server's own bank, as the host would know it. */
   const right = (s: Sim) => TRIVIA_BANK.find((q) => q.text === trivia(s).question.text)!.correct;
 
-  test('scoring: 100 + a speed bonus for a correct answer; a team scores the AVERAGE of its members (non-answers count 0); recorded once, at the reveal', () => {
+  test('scoring: only the FIRST correct answer scores — 10 for that player’s team, 0 for everyone else; recorded once, at the reveal', () => {
     const s = lobby(33);
     s.room.setActivity(host(s), 'trivia');
     s.room.triviaCommand(host(s), 'start');
     const ok = right(s);
     const wrong = (ok + 1) % 4;
-    // Titans: A1 instantly correct (200), A2 wrong → average 100.  Vibe: B1 correct at half time (150), B2 never answers → average 75.
-    // Ctrl: C1 correct at the buzzer's edge (~100), C2 correct instantly (200) → average ~150.
-    assert.ok(s.room.triviaAnswer(s.get('A1').p, 0, ok));
+    // A2 answers first but wrong (never scores); B1 is the first correct; C1 and C2 are correct later.
     assert.ok(s.room.triviaAnswer(s.get('A2').p, 0, wrong));
-    assert.ok(s.room.triviaAnswer(s.get('C2').p, 0, ok));
-    s.advance(TRIVIA_LIMIT_MS / 2);
+    s.advance(1000);
     assert.ok(s.room.triviaAnswer(s.get('B1').p, 0, ok));
-    s.advance(TRIVIA_LIMIT_MS / 2 - 1); // 1 ms before the clock runs out
-    assert.equal(trivia(s).stage, 'question');
+    s.advance(1000);
     assert.ok(s.room.triviaAnswer(s.get('C1').p, 0, ok));
-    s.advance(1); // the clock runs out: B2 never answered
+    assert.ok(s.room.triviaAnswer(s.get('C2').p, 0, ok));
+    s.advance(TRIVIA_LIMIT_MS); // the clock runs out: A1 and B2 never answered
     const t = trivia(s);
     assert.equal(t.stage, 'reveal');
     const r = t.reveal!;
     assert.equal(r.correct, ok);
-    assert.deepEqual(r.tally, { titans: { correct: 1, eligible: 2 }, vibe: { correct: 1, eligible: 2 }, ctrl: { correct: 2, eligible: 2 } });
-    assert.equal(r.gained.titans, 100);
-    assert.equal(r.gained.vibe, 75);
-    assert.ok(Math.abs(r.gained.ctrl - 150) <= 1, `ctrl ${r.gained.ctrl}`);
-    assert.equal(r.picks[ok], 4);
+    assert.deepEqual(r.first, { id: s.get('B1').p.id, name: 'B1', team: 'vibe' });
+    assert.deepEqual(r.gained, { titans: 0, vibe: 10, ctrl: 0 }, 'two Ctrl players right, but later: no points');
+    assert.deepEqual(r.tally, { titans: { correct: 0, eligible: 2 }, vibe: { correct: 1, eligible: 2 }, ctrl: { correct: 2, eligible: 2 } });
+    assert.equal(r.picks[ok], 3);
     assert.equal(r.picks[wrong], 1);
     assert.ok(r.explanation && r.explanation.length > 10);
     assert.deepEqual(t.scores, r.gained, 'the question’s points are now the quiz score');
@@ -309,19 +302,26 @@ describe('the dashboard and the activities in a room', () => {
     assert.deepEqual(trivia(s).scores, r.gained, 'time passing changes nothing');
   });
 
-  test('team size does not matter: a team of one that answers perfectly scores the same as a team of five that does', () => {
-    sim = new Sim({}, 8, false, { activity: null, rand: seeded(40) });
-    for (let i = 0; i < 5; i++) sim.join(`A${i}`, 'titans');
-    sim.join('B0', 'vibe');
-    sim.room.setActivity(host(sim), 'trivia');
-    sim.room.triviaCommand(host(sim), 'start');
-    const ok = right(sim);
-    for (const [n, e] of sim.entries) if (n !== Sim.HOST) sim.room.triviaAnswer(e.p, 0, ok);
-    const t = trivia(sim);
+  test('a tie on the clock goes to whoever arrived first; wrong answers never score; nobody right means 0 for every team', () => {
+    const s = lobby(35);
+    s.room.setActivity(host(s), 'trivia');
+    s.room.triviaCommand(host(s), 'start');
+    let ok = right(s);
+    // same instant: C2 arrives before A1
+    assert.ok(s.room.triviaAnswer(s.get('C2').p, 0, ok));
+    assert.ok(s.room.triviaAnswer(s.get('A1').p, 0, ok));
+    s.room.triviaCommand(host(s), 'reveal');
+    assert.equal(trivia(s).reveal!.first!.name, 'C2');
+    assert.deepEqual(trivia(s).reveal!.gained, { titans: 0, vibe: 0, ctrl: 10 });
+    s.room.triviaCommand(host(s), 'next');
+    // question 2: everyone wrong
+    ok = right(s);
+    for (const [n, e] of s.entries) if (n !== Sim.HOST) s.room.triviaAnswer(e.p, 1, (ok + 1) % 4);
+    const t = trivia(s);
     assert.equal(t.stage, 'reveal', 'everyone answered, so it closed at once');
-    assert.equal(t.reveal!.gained.titans, t.reveal!.gained.vibe);
-    assert.equal(t.reveal!.gained.titans, 200);
-    assert.equal(t.reveal!.gained.ctrl, 0, 'a team with nobody in the room scores nothing');
+    assert.equal(t.reveal!.first, undefined, 'nobody got it right');
+    assert.deepEqual(t.reveal!.gained, { titans: 0, vibe: 0, ctrl: 0 });
+    assert.deepEqual(t.scores, { titans: 0, vibe: 0, ctrl: 10 });
   });
 
   test('a whole quiz: 5 questions from different topics, the host moves it on, scores add up once each, then the final leaderboard and top players', () => {
@@ -353,12 +353,14 @@ describe('the dashboard and the activities in a room', () => {
     assert.equal(done.history.length, 5);
     assert.deepEqual(done.scores, total);
     assert.equal(done.scores.ctrl, 0);
-    assert.ok(done.scores.titans > done.scores.vibe && done.scores.vibe > 0);
+    // the Titans answer first every time, so A1 wins every question; Vibe is right on even questions, but later
+    assert.deepEqual(done.scores, { titans: 5 * TRIVIA_POINTS, vibe: 0, ctrl: 0 });
     assert.equal(done.top!.length, 5);
     assert.deepEqual(done.top!.map((p) => p.points), [...done.top!.map((p) => p.points)].sort((a, b) => b - a));
-    assert.deepEqual(done.top!.slice(0, 4).map((p) => p.team).sort(), ['titans', 'titans', 'vibe', 'vibe'], 'the four who scored come first');
-    assert.equal(done.top![4]!.points, 0, 'six people played, so the fifth place is someone who scored nothing');
+    assert.equal(done.top![0]!.name, 'A1', 'top players are ranked by questions won');
+    assert.equal(done.top![0]!.points, 5 * TRIVIA_POINTS);
     assert.equal(done.top![0]!.correct, 5);
+    assert.ok(done.top!.slice(1).every((p) => p.points === 0), 'right but not first scores nothing');
     assert.equal(s.room.triviaCommand(host(s), 'next'), false);
     // Tech Trivia's score is its own
     const i = info(s);
@@ -387,7 +389,7 @@ describe('the dashboard and the activities in a room', () => {
     assert.equal(trivia(s).endsAt, s.now() + TRIVIA_LIMIT_MS, 'a fresh clock for the next question');
   });
 
-  test('a participant who drops mid-question still counts as one of their team (they scored 0 if they had not answered), and one who had answered keeps the points', () => {
+  test('a participant who answered correctly first and then dropped still wins the question for their team', () => {
     const s = lobby(36);
     s.room.setActivity(host(s), 'trivia');
     s.room.triviaCommand(host(s), 'start');
@@ -398,7 +400,8 @@ describe('the dashboard and the activities in a room', () => {
     s.advance(TRIVIA_LIMIT_MS);
     const r = trivia(s).reveal!;
     assert.deepEqual(r.tally.titans, { correct: 1, eligible: 2 });
-    assert.ok(r.gained.titans >= 90 && r.gained.titans <= 100, `average of ~200 and 0: ${r.gained.titans}`);
+    assert.equal(r.first!.name, 'A1');
+    assert.deepEqual(r.gained, { titans: 10, vibe: 0, ctrl: 0 });
   });
 
   test('scores for the three activities stay apart and the overall leaderboard adds the placements', () => {
@@ -498,7 +501,8 @@ describe('the activities over real WebSockets', () => {
       await Promise.all(all.map((c) => c.waitFor((m) => m.t === 'room' && m.room.trivia?.stage === 'reveal')));
       const r = host.room.trivia!.reveal!;
       assert.equal(r.correct, bank.correct);
-      assert.ok(r.gained.titans > 150 && r.gained.vibe === 0 && r.gained.ctrl > 150);
+      assert.deepEqual(r.gained, { titans: 10, vibe: 0, ctrl: 0 }, 'the first correct answer (a Titan) wins; the later Ctrl answer scores nothing');
+      assert.equal(r.first!.team, 'titans');
       for (const c of all) assert.deepEqual(c.room.trivia!.scores, r.gained);
       assert.deepEqual(host.room.activities[2]!.points, r.gained);
 
