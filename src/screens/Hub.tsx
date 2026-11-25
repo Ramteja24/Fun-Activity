@@ -39,8 +39,8 @@ export function HubScreen() {
           <PlatformTitle />
           <p className="ph-lead">
             {isHost
-              ? 'Three games, one leaderboard. Share the room code, then take everyone through each game — you run it and watch; you do not play.'
-              : 'Three games, one leaderboard. The host takes the room into each game — your screen follows automatically.'}
+              ? 'Four games, one leaderboard. Share the room code, then take everyone through each game — you run it and watch; you do not play.'
+              : 'Four games, one leaderboard. The host takes the room into each game — your screen follows automatically.'}
           </p>
           {isHost && (
             <p className="ph-next">
@@ -67,7 +67,7 @@ export function HubScreen() {
 
       <section className="ph-board card rise" aria-labelledby="ph-overall-title">
         <h2 id="ph-overall-title" className="section-title">
-          Overall leaderboard <span>all three activities</span>
+          Overall leaderboard <span>every game</span>
         </h2>
         <Overall />
       </section>
@@ -111,8 +111,14 @@ export function HubScreen() {
                       ))}
                     </ul>
                     {isHost ? (
-                      <button type="button" className="ph-open btn btn-accent btn-block" onClick={() => openActivity(a.id)}>
-                        <span>{score.status === 'pending' ? `Open ${a.name}` : score.status === 'live' ? `Continue ${a.name}` : `Open ${a.name} again`}</span>
+                      <button
+                        type="button"
+                        className="ph-open btn btn-accent btn-block"
+                        onClick={() => openActivity(a.id)}
+                        aria-label={score.status === 'pending' ? `Open ${a.name}` : score.status === 'live' ? `Continue ${a.name}` : `Open ${a.name} again`}
+                      >
+                        {/* the card already names the game: the button says only what it does */}
+                        <span>{score.status === 'pending' ? 'Open' : score.status === 'live' ? 'Continue' : 'Play again'}</span>
                       </button>
                     ) : (
                       <p className="ph-open-wait">{next ? 'Up next — waiting for the host' : score.status === 'done' ? 'Finished' : 'The host opens it'}</p>
@@ -167,7 +173,7 @@ function Overall() {
         ))}
       </ol>
       <p className="ph-foot">
-        Placements in every activity that has scored: <b>1st 3 · 2nd 2 · 3rd 1</b> (equal scores share a place, marked * on the cards). Each game's own points stay on its card.
+        Placements in every activity that has scored: <b>1st 3 · 2nd 2 · 3rd 1</b> (equal scores share a place, marked * on the cards); a team that scored nothing in a game gets nothing for it. Each game's own points stay on its card.
         {rows.some((r) => r.tied && r.rank === 1) && anyScored ? ' Level on placements and first places: shown as a tie, never decided at random.' : ''}
       </p>
     </div>

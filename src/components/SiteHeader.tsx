@@ -19,7 +19,7 @@ export function SiteHeader({
   wide?: boolean;
   /** The line beside TypeDrive's logo. */
   tagline?: string;
-  /** Whose logo: TypeDrive's own screens wear TypeDrive's; the dashboard and the screens the three games share wear the platform's. */
+  /** Whose logo: TypeDrive's own screens wear TypeDrive's; the dashboard and the screens the games share wear the platform's. */
   brand?: 'typedrive' | 'platform';
   /** The platform lockup's size: pixels, or a CSS length. */
   logoSize?: number | string;

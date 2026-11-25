@@ -12,6 +12,7 @@ import { HubScreen } from './screens/Hub';
 import { Landing } from './screens/Landing';
 import { Lobby } from './screens/Lobby';
 import { MatchResultsScreen } from './screens/MatchResults';
+import { PlayingCardsScreen } from './screens/PlayingCards';
 import { RaceScreen } from './screens/Race';
 import { ResultsScreen } from './screens/Results';
 import { SpectatorScreen } from './screens/Spectator';
@@ -131,6 +132,8 @@ export default function App() {
     screen = <HubScreen />; // the Weekly Fun Activity dashboard: the room's home between games
   } else if (room.activity === 'pose') {
     screen = <FunnyPoseScreen />;
+  } else if (room.activity === 'cards') {
+    screen = <PlayingCardsScreen />;
   } else if (room.activity === 'trivia') {
     screen = <TechTriviaScreen />;
   } else if (room.match.ended) {

@@ -221,6 +221,51 @@ export interface TriviaInfo {
   top?: TriviaTop[];
 }
 
+/**
+ * Playing Cards — find the joker. ready: face down, waiting for the host · preview: face up, the joker showing · shuffle: the
+ * cards are swapped on every screen at once, timed from the server's clock · pick: tap the card the joker is under · reveal:
+ * every card turns over · over: the five rounds are done.
+ */
+export type CardsStage = 'ready' | 'preview' | 'shuffle' | 'pick' | 'reveal' | 'over';
+
+export interface CardsReveal {
+  /** Where the joker ended up (a position, 0-based, left to right). */
+  joker: number;
+  /** How many players picked each position. */
+  picks: number[];
+  /** What this round earned each team: CARDS_POINTS for the team of the first correct pick, 0 for the others. */
+  gained: Record<TeamId, number>;
+  /** Whoever picked the joker first (earliest on the server's clock) — the only pick that scores. None if nobody found it. */
+  first?: { id: string; name: string; team: TeamId };
+}
+
+/** Playing Cards, as everyone sees it. */
+export interface CardsInfo {
+  session: number;
+  stage: CardsStage;
+  rounds: number;
+  /** 1-based. */
+  round: number;
+  /** How many cards this round. */
+  cards: number;
+  /** Where the joker starts. Sent from the preview on (never while the cards are still face down before it). */
+  start?: number;
+  /** Server-clock end of the preview. */
+  previewEndsAt?: number;
+  /** The shuffle, sent once it begins: each step swaps the cards at two positions, one step every `swapMs` from `startsAt`. */
+  swaps?: [number, number][];
+  startsAt?: number;
+  swapMs: number;
+  /** Players who can pick (on a team, here) and how many have picked (not what). */
+  eligible: number;
+  picked: number;
+  reveal?: CardsReveal;
+  /** Team points this session. */
+  scores: Record<TeamId, number>;
+  /** After each revealed round: the points it earned each team. */
+  history: { round: number; gained: Record<TeamId, number> }[];
+}
+
 export interface RoomInfo {
   code: string;
   phase: Phase;
@@ -236,13 +281,14 @@ export interface RoomInfo {
   match: MatchInfo;
   /** Present in the results phase. */
   results?: ResultRow[];
-  /** What the whole room is showing: the dashboard (`hub`) or one of the three activities. The host decides. */
+  /** What the whole room is showing: the dashboard (`hub`) or one of the activities. The host decides. */
   activity: Screen;
-  /** The three activities, in play order, each with its status and its own team scores. */
+  /** The activities, in play order, each with its status and its own team scores. */
   activities: ActivityScore[];
   /** The overall team leaderboard for the whole fun session (see shared/activities.ts for how it is added up). */
   overall: OverallRow[];
   pose: PoseInfo | null;
+  cards: CardsInfo | null;
   trivia: TriviaInfo | null;
 }
 
@@ -284,6 +330,13 @@ export type ClientMsg =
    */
   | { t: 'pose'; op: 'start' | 'begin' | 'respin' | 'reveal' | 'done' | 'notdone' | 'next' | 'reset' }
   | { t: 'pose'; op: 'team'; team: TeamId }
+  /**
+   * Host only: run Playing Cards (`start` a session, `show` the joker — the shuffle follows by itself — `reveal` the answer, go to
+   * the `next` round, `reset` the session).
+   */
+  | { t: 'cards'; op: 'start' | 'show' | 'reveal' | 'next' | 'reset' }
+  /** A participant picks the card the joker is under in round `round` (1-based); `card` is a position. One pick per round, final. */
+  | { t: 'cardpick'; round: number; card: number }
   /** Host only: run Tech Trivia (`start` the quiz, `reveal` the answer now, go to the `next` question). */
   | { t: 'trivia'; op: 'start' | 'reveal' | 'next' | 'reset' }
   /** A participant answers the Tech Trivia question in play (`q` = its index). One answer per question, final. */
@@ -297,6 +350,8 @@ export type PoseOp = PoseCommand['op'];
 export const POSE_PLAIN_OPS: readonly PoseOp[] = ['start', 'begin', 'respin', 'reveal', 'done', 'notdone', 'next', 'reset'];
 export type TriviaOp = Extract<ClientMsg, { t: 'trivia' }>['op'];
 export const TRIVIA_OPS: readonly TriviaOp[] = ['start', 'reveal', 'next', 'reset'];
+export type CardsOp = Extract<ClientMsg, { t: 'cards' }>['op'];
+export const CARDS_OPS: readonly CardsOp[] = ['start', 'show', 'reveal', 'next', 'reset'];
 
 /** Which activity a message belongs to, for type guards on the client. */
 export type { ActivityId, Difficulty };

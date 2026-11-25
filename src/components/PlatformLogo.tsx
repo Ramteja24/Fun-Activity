@@ -1,7 +1,7 @@
 import { PLATFORM } from '../brand';
 
 /**
- * The platform's lockup — at the top left of the Weekly Fun Activity dashboard and of every screen the three games share. It is
+ * The platform's lockup — at the top left of the Weekly Fun Activity dashboard and of every screen the games share. It is
  * GANTEC's OFFICIAL logo (the company's own file, kept untouched in assets/gantec-logo-original.png), turned into `public/gantec-logo.png`
  * by `npm run logo` (scripts/make-gantec-logo.ts): the white background made transparent, the orange of the icon and the G exactly as
  * they were, "ANTEC" printed in soft white because its grey cannot be read on a dark page, the empty margin trimmed, enlarged 3× so it is

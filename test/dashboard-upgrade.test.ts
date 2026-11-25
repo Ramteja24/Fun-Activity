@@ -127,8 +127,8 @@ describe('no dark arena behind the dashboard', () => {
 describe('the hero and HOW IT WORKS', () => {
   const welcome = read('src/screens/Welcome.tsx');
 
-  test('the first screen reads top to bottom: branding, a centred headline, the steps, then the three cards — every word still there', () => {
-    for (const text of ['Three live team games', 'Three games, one leaderboard. Pick a game to host a room — you run each game and everyone’s screen follows.']) assert.ok(welcome.includes(text), text);
+  test('the first screen reads top to bottom: branding, a centred headline, the steps, then the four cards — every word still there', () => {
+    for (const text of ['Four live team games', 'Four games, one leaderboard. Pick a game to host a room — you run each game and everyone’s screen follows.']) assert.ok(welcome.includes(text), text);
     const order = ['<SiteHeader', 'className="ph-hero ph-hero-c', 'ph-how-card', '<ol className="ph-games">'].map((part) => welcome.indexOf(part));
     assert.ok(order.every((at) => at > 0) && order.every((at, i) => i === 0 || at > order[i - 1]!), `order: ${order}`);
     assert.match(css, /\.ph-hero-c \{[^}]*text-align: center;/s);
@@ -147,16 +147,16 @@ describe('the hero and HOW IT WORKS', () => {
   });
 });
 
-describe('the three game cards', () => {
+describe('the game cards', () => {
   test('each says what kind of game it is above its name — on the first screen and on the in-room dashboard', () => {
-    assert.deepEqual({ ...GAME_KICKER }, { typedrive: 'Live multiplayer typing race', pose: 'Team entertainment challenge', trivia: 'Technical quiz challenge' });
+    assert.deepEqual({ ...GAME_KICKER }, { typedrive: 'Live multiplayer typing race', pose: 'Team entertainment challenge', cards: 'Visual memory challenge', trivia: 'Technical quiz challenge' });
     for (const f of ['src/screens/Welcome.tsx', 'src/screens/Hub.tsx']) {
       const src = read(f);
       const kick = src.indexOf('<p className="ph-kick">{GAME_KICKER[a.id]}</p>');
       assert.ok(kick > 0, f);
       assert.ok(kick < src.indexOf('<h3 className="ph-game-name">'), `${f}: above the name`);
     }
-    assert.deepEqual(ACTIVITIES.map((a) => a.id), ['typedrive', 'pose', 'trivia'], 'the three-game order is untouched');
+    assert.deepEqual(ACTIVITIES.map((a) => a.id), ['typedrive', 'pose', 'cards', 'trivia'], 'the play order');
   });
 
   test('a flat light card: white surface, a hairline border, a soft shadow; the launch button is a solid button in the game’s colour', () => {

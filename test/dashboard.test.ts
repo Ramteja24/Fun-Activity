@@ -41,8 +41,9 @@ describe('the three game cards are the same size', () => {
     assert.match(rule('.ph-open-wait'), /margin-top: auto;/);
   });
 
-  test('three equal columns from 820 px that share the window’s height (the picture takes what is left), one column below', () => {
-    assert.match(css, /@media \(min-width: 820px\) \{\s*\.ph-games \{\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+  test('equal columns — four across from 1100 px, two from 640 px — that share the window’s height (the picture takes what is left), one column below', () => {
+    assert.match(css, /@media \(min-width: 640px\) \{\s*\.ph-games \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+    assert.match(css, /@media \(min-width: 1100px\) \{\s*\.ph-games \{\s*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
     const fit = css.slice(css.indexOf('.ph-games-sec > .ph-games {'));
     assert.match(fit, /^\.ph-games-sec > \.ph-games \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;[^}]*grid-template-rows: minmax\(0, 1fr\);/s);
     assert.match(css, /\.ph-games-sec \.ph-art \{[^}]*flex: 1 1 0;[^}]*min-height: 64px;/s);
@@ -117,7 +118,7 @@ describe('the dashboard around the cards', () => {
   test('HOW IT WORKS keeps all four steps, each with its own icon', () => {
     const welcome = read('src/screens/Welcome.tsx');
     assert.match(welcome, /<ol className="ph-how">/);
-    for (const step of ['Open a game below.', '4-letter code', 'Everyone waits in the lobby until you start the game.', 'Team points from all three games add up on one overall leaderboard.']) {
+    for (const step of ['Open a game below.', '4-letter code', 'Everyone waits in the lobby until you start the game.', 'Team points from all four games add up on one overall leaderboard.']) {
       assert.ok(welcome.includes(step), step);
     }
     for (const icon of ['<StepGame />', '<StepKey />', '<StepLobby />', '<StepTrophy />']) assert.ok(welcome.includes(icon), icon);

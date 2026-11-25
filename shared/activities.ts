@@ -1,8 +1,8 @@
-// The Weekly Fun Activity: three games in a fixed order, a score for each, and an overall team leaderboard.
+// The Weekly Fun Activity: four games in a fixed order, a score for each, and an overall team leaderboard.
 // Pure data and rules, shared by the server (authoritative) and the client (display only).
 import { rankTeams, TEAMS, TEAM_IDS, type TeamId } from './teams';
 
-export type ActivityId = 'typedrive' | 'pose' | 'trivia';
+export type ActivityId = 'typedrive' | 'pose' | 'cards' | 'trivia';
 /** What the room is showing: the dashboard, or one of the activities. */
 export type Screen = 'hub' | ActivityId;
 
@@ -16,6 +16,7 @@ export interface ActivityDef {
 export const ACTIVITIES: readonly ActivityDef[] = [
   { id: 'typedrive', name: 'TypeDrive', tagline: 'A live typing race. Each team’s drivers score points for finishing first.' },
   { id: 'pose', name: 'Funny Pose Challenge', tagline: 'The host picks a team and a player. They copy a funny pose on the call while everyone watches.' },
+  { id: 'cards', name: 'Playing Cards', tagline: 'Watch the joker, follow the shuffle, tap the card — first to find it wins 10 for the team.' },
   { id: 'trivia', name: 'Tech Trivia', tagline: 'Five quick questions on Python, AI, SQL, Git and the cloud. Everyone answers.' },
 ];
 
@@ -45,6 +46,19 @@ export const POSE_PERFORM_MS = 30_000;
 /** The player spinner that follows the host's choice of team — the same on every screen, timed from the server's clock. */
 export const POSE_SPIN_MS = 5200;
 
+// ------------------------------------------------------------------------------------------------ Playing Cards (find the joker)
+export const CARDS_ROUNDS = 5;
+/** Per round: how many cards, how many swaps the shuffle makes, and how long each swap takes (it gets harder every round). */
+export const CARDS_PER_ROUND: readonly number[] = [3, 4, 4, 5, 5];
+export const CARDS_SWAPS: readonly number[] = [6, 8, 10, 12, 14];
+export const CARDS_SWAP_MS: readonly number[] = [420, 360, 320, 280, 240];
+/** How long the cards stay face up with the joker showing before the shuffle starts. */
+export const CARDS_PREVIEW_MS = 2200;
+/** A short pause after the cards turn face down, so every screen starts the shuffle together. */
+export const CARDS_SHUFFLE_LEAD_MS = 500;
+/** Per round, only the FIRST correct pick scores: this many points for that player's team. */
+export const CARDS_POINTS = 10;
+
 // ------------------------------------------------------------------------------------------------ Tech Trivia
 export const TRIVIA_QUESTIONS = 5;
 export const TRIVIA_LIMIT_MS = 20_000;
@@ -53,10 +67,10 @@ export const TRIVIA_POINTS = 10;
 
 // ------------------------------------------------------------------------------------------------ the overall leaderboard
 /**
- * The three activities score on very different scales (a TypeDrive race can add hundreds of points, a trivia question
- * 10), so the overall leaderboard adds up *placements*, not raw points: in each activity that has scored, the team in 1st place
- * gets 3, 2nd gets 2, 3rd gets 1 (teams level on points share a place, as in the race results). Each activity therefore counts
- * the same, and the raw points stay visible next to it.
+ * The activities score on very different scales (a TypeDrive race can add hundreds of points, a trivia question 10), so the
+ * overall leaderboard adds up *placements*, not raw points: in each activity that has scored, the team in 1st place gets 3, 2nd
+ * gets 2, 3rd gets 1 (teams level on points share a place, as in the race results). A team that scored nothing in an activity
+ * gets nothing for it. Each activity therefore counts the same, and the raw points stay visible next to it.
  */
 export const PLACEMENT_POINTS: readonly number[] = [3, 2, 1];
 export const placementFor = (rank: number): number => PLACEMENT_POINTS[rank - 1] ?? 0;
@@ -75,13 +89,14 @@ export interface OverallRow {
 
 const scored = (a: ActivityScore) => TEAM_IDS.some((t) => a.points[t] > 0);
 
-/** The overall leaderboard from the three activities' scores, in the fixed team order. */
+/** The overall leaderboard from the activities' scores, in the fixed team order. */
 export function overallStandings(activities: readonly ActivityScore[]): OverallRow[] {
   const placement = Object.fromEntries(TEAM_IDS.map((t) => [t, 0])) as Record<TeamId, number>;
   const wins = { ...placement };
   for (const a of activities) {
     if (!scored(a)) continue; // nothing scored there yet: it adds nothing to anyone
     for (const r of rankTeams(a.points)) {
+      if (r.points <= 0) continue; // scoring nothing earns no placement, however many others also scored nothing
       placement[r.id] += placementFor(r.rank);
       if (r.rank === 1) wins[r.id] += 1;
     }

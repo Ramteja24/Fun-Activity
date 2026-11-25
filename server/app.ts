@@ -5,7 +5,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { isScreen } from '../shared/activities';
 import { isDifficulty } from '../shared/difficulty';
 import { normalizeRoomCode } from '../shared/game';
-import { POSE_PLAIN_OPS, TRIVIA_OPS, type ClientMsg, type ErrorCode, type PoseOp, type ServerMsg, type TriviaOp } from '../shared/protocol';
+import { CARDS_OPS, POSE_PLAIN_OPS, TRIVIA_OPS, type CardsOp, type ClientMsg, type ErrorCode, type PoseOp, type ServerMsg, type TriviaOp } from '../shared/protocol';
 import { isTeamId } from '../shared/teams';
 import { createLoginLimiter, type AdminAuth } from './admin';
 import { defaultConfig, type RoomConfig } from './config';
@@ -69,6 +69,12 @@ export function parseClientMsg(raw: string): ClientMsg | null {
       return typeof o.op === 'string' && (TRIVIA_OPS as readonly string[]).includes(o.op) ? { t: 'trivia', op: o.op as TriviaOp } : null;
     case 'answer':
       return Number.isInteger(o.q) && Number.isInteger(o.choice) ? { t: 'answer', q: o.q as number, choice: o.choice as number } : null;
+    case 'cards':
+      return typeof o.op === 'string' && (CARDS_OPS as readonly string[]).includes(o.op) ? { t: 'cards', op: o.op as CardsOp } : null;
+    case 'cardpick':
+      return Number.isInteger(o.round) && Number.isInteger(o.card) && (o.round as number) > 0 && (o.card as number) >= 0 && (o.card as number) < 16
+        ? { t: 'cardpick', round: o.round as number, card: o.card as number }
+        : null;
     case 'ping':
       return typeof o.c === 'number' && Number.isFinite(o.c) ? { t: 'ping', c: o.c } : null;
     case 'k':
@@ -337,6 +343,12 @@ export function createApp(opts: AppOptions = {}): App {
           return;
         case 'answer':
           room.triviaAnswer(player, msg.q, msg.choice);
+          return;
+        case 'cards':
+          room.cardsCommand(player.id, msg.op);
+          return;
+        case 'cardpick':
+          room.cardPick(player, msg.round, msg.card);
           return;
         case 'kick':
           room.kick(player.id, msg.id);

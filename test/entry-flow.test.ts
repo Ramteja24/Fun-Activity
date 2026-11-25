@@ -78,8 +78,8 @@ describe('the first screen', () => {
     assert.match(store, /entry: openedWithInviteLink\(\) \? 'typedrive' : null/, 'the app starts on the dashboard (entry = null)');
   });
 
-  test('the dashboard lists the three games in order, each with an "Open …" button that opens that game’s name / host / join page', () => {
-    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Funny Pose Challenge', 'Tech Trivia']);
+  test('the dashboard lists the four games in order, each with an "Open …" button that opens that game’s name / host / join page', () => {
+    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Funny Pose Challenge', 'Playing Cards', 'Tech Trivia']);
     assert.match(welcome, /ACTIVITIES\.map\(\(a, i\) =>/);
     assert.match(welcome, /onClick=\{\(\) => setEntry\(a\.id\)\}/);
     assert.match(welcome, /isAdmin \? `Open \$\{a\.name\}` : 'Join a room'/);
@@ -97,8 +97,8 @@ describe('the first screen', () => {
     assert.match(landing, /onClick=\{\(\) => setEntry\(null\)\}/, 'back to the dashboard');
   });
 
-  test('Funny Pose Challenge and Tech Trivia use the same form with their own words, and no race-only sections', () => {
-    assert.match(landing, /const game = entry === 'pose' \|\| entry === 'trivia' \? ACTIVITIES\.find/);
+  test('Funny Pose Challenge, Playing Cards and Tech Trivia use the same form with their own words, and no race-only sections', () => {
+    assert.match(landing, /const game = entry === 'pose' \|\| entry === 'cards' \|\| entry === 'trivia' \? ACTIVITIES\.find/);
     assert.match(landing, /\) : \(\s*<div className="lp-scene/, 'the race strip is in the TypeDrive branch');
     assert.match(landing, /\{!game && <HowToPlay \/>\}/);
     assert.match(landing, /Ready to play\?/);

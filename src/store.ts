@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { ActivityId, Screen } from '../shared/activities';
 import { normalizeRoomCode } from '../shared/game';
-import type { PoseCommand, ResultRow, RoomInfo, ServerMsg, TriviaOp } from '../shared/protocol';
+import type { CardsOp, PoseCommand, ResultRow, RoomInfo, ServerMsg, TriviaOp } from '../shared/protocol';
 import type { Difficulty } from '../shared/difficulty';
 import type { TeamId } from '../shared/teams';
 import { RaceEngine } from './game/engine';
@@ -67,6 +67,8 @@ function saveAnswers(room: string, picks: Record<string, number>): void {
   }
 }
 export const answerKey = (session: number, q: number) => `${session}:${q}`;
+/** My Playing Cards pick for a round is kept in the same per-tab memory, under its own key. */
+export const cardPickKey = (session: number, round: number) => `cards:${session}:${round}`;
 
 // The admin login (the only account that creates rooms and hosts the games). Kept per browser until "Log out", or until the
 // server stops accepting it (expired, or the password was changed with `npm run admin`).
@@ -113,7 +115,7 @@ export interface GameState {
    * (what the app opens on); a game = the name / host / join page for it. A new room opens in that game.
    */
   entry: ActivityId | null;
-  /** My own Tech Trivia picks, by `answerKey`. */
+  /** My own Tech Trivia answers (by `answerKey`) and Playing Cards picks (by `cardPickKey`). */
   myAnswers: Record<string, number>;
   /** Private result row, set the moment the server confirms we crossed the line. */
   myFinish: ResultRow | null;
@@ -154,6 +156,10 @@ export interface GameState {
   /** Host: run the Funny Pose Challenge (choose a team, start the round, reveal, mark, next…) / Tech Trivia. */
   poseOp(cmd: PoseAction): void;
   triviaOp(op: TriviaOp): void;
+  /** Host: run Playing Cards. */
+  cardsOp(op: CardsOp): void;
+  /** Pick the card the joker is under (only while picking); one pick per round, and it is final. */
+  cardPick(card: number): void;
   /** Answer the Tech Trivia question in play; one answer per question, and it is final. */
   answer(q: number, choice: number): void;
   leave(): void;
@@ -262,6 +268,20 @@ export const useGame = create<GameState>((set, get) => ({
   },
   triviaOp(op) {
     socket.send({ t: 'trivia', op });
+  },
+  cardsOp(op) {
+    socket.send({ t: 'cards', op });
+  },
+  cardPick(card) {
+    const { room, myAnswers } = get();
+    const cards = room?.cards;
+    if (!room || !cards || cards.stage !== 'pick') return;
+    const key = cardPickKey(cards.session, cards.round);
+    if (key in myAnswers) return; // final
+    const picks = { ...myAnswers, [key]: card };
+    saveAnswers(room.code, picks);
+    set({ myAnswers: picks });
+    socket.send({ t: 'cardpick', round: cards.round, card });
   },
   answer(q, choice) {
     const { room, myAnswers } = get();

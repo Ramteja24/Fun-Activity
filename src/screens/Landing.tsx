@@ -4,7 +4,7 @@ import { normalizeRoomCode } from '../../shared/game';
 import { NAME_MAX, ROOM_CODE_ALPHABET, ROOM_CODE_LEN } from '../../shared/protocol';
 import { rosterTeamFor, TEAMS, type TeamId } from '../../shared/teams';
 import { openDemo } from '../demo/session';
-import { GAME_FACTS, PoseStage, TriviaArena } from '../components/landing/GameStages';
+import { CardTable, GAME_FACTS, PoseStage, TriviaArena } from '../components/landing/GameStages';
 import { RacingWordmark } from '../components/landing/RacingWordmark';
 import { HowToPlay } from '../components/landing/HowToPlay';
 import { RaceScene } from '../components/landing/RaceScene';
@@ -32,9 +32,9 @@ export function Landing() {
   const setEntry = useGame((s) => s.setEntry);
   // Only the admin hosts: everyone else gets the join form alone.
   const isAdmin = useGame((s) => !!s.admin);
-  // This page is TypeDrive's own landing page. Opened for the Funny Pose Challenge or Tech Trivia (from the Weekly Fun Activity dashboard) it
+  // This page is TypeDrive's own landing page. Opened for the Funny Pose Challenge, Playing Cards or Tech Trivia (from the Weekly Fun Activity dashboard) it
   // is the same name / host / join form — only the words and the picture around it change.
-  const game = entry === 'pose' || entry === 'trivia' ? ACTIVITIES.find((a) => a.id === entry) : undefined;
+  const game = entry === 'pose' || entry === 'cards' || entry === 'trivia' ? ACTIVITIES.find((a) => a.id === entry) : undefined;
 
   const invite = codeFromUrl();
   // A shared invite link opens on "Join"; the bare URL is almost always the host setting up.
@@ -98,7 +98,7 @@ export function Landing() {
               </p>
               {game && (
                 <ul className="en-facts" aria-label="At a glance">
-                  {GAME_FACTS[game.id as 'pose' | 'trivia'].map((f) => (
+                  {GAME_FACTS[game.id as keyof typeof GAME_FACTS].map((f) => (
                     <li key={f}>{f}</li>
                   ))}
                 </ul>
@@ -108,7 +108,7 @@ export function Landing() {
             {/* the picture: TypeDrive's race strip, or the game's own stage / arena */}
             {game ? (
               <div className="gl-wrap en-art rise" style={rise(0.12)}>
-                {game.id === 'pose' ? <PoseStage /> : <TriviaArena />}
+                {game.id === 'pose' ? <PoseStage /> : game.id === 'cards' ? <CardTable /> : <TriviaArena />}
               </div>
             ) : (
               <div className="lp-scene en-art rise" style={rise(0.12)}>

@@ -118,7 +118,8 @@ describe('the overall leaderboard', () => {
 
   test('a clear winner, the order, and the leaders', () => {
     const rows = overallStandings([act('typedrive', { titans: 500, vibe: 300, ctrl: 100 }), act('pose', { titans: 200, vibe: 100, ctrl: 0 }), act('trivia', { titans: 0, vibe: 0, ctrl: 0 }, 'pending')]);
-    assert.deepEqual(rows.map((r) => [r.id, r.placement, r.rank, r.tied]), [['titans', 6, 1, false], ['vibe', 4, 2, false], ['ctrl', 2, 3, false]]);
+    // Ctrl scored nothing in the Funny Pose Challenge, so it gets nothing there (not a share of a place)
+    assert.deepEqual(rows.map((r) => [r.id, r.placement, r.rank, r.tied]), [['titans', 6, 1, false], ['vibe', 4, 2, false], ['ctrl', 1, 3, false]]);
     assert.deepEqual(overallLeaders(rows), ['titans']);
   });
 
@@ -127,7 +128,9 @@ describe('the overall leaderboard', () => {
     assert.ok(none.every((r) => r.placement === 0));
     assert.deepEqual(overallLeaders(none), []);
     const one = overallStandings([act('typedrive', {}, 'pending'), act('pose', { vibe: 100 }, 'live'), act('trivia', {}, 'pending')]);
-    assert.deepEqual(one.map((r) => [r.id, r.placement]), [['titans', 2], ['vibe', 3], ['ctrl', 2]], 'two teams on 0 share 2nd');
+    assert.deepEqual(one.map((r) => [r.id, r.placement]), [['titans', 0], ['vibe', 3], ['ctrl', 0]], 'a team that scored nothing gets nothing for it');
+    const shared = overallStandings([act('pose', { titans: 20, vibe: 20, ctrl: 0 })]);
+    assert.deepEqual(shared.map((r) => [r.id, r.placement]), [['titans', 3], ['vibe', 3], ['ctrl', 0]], 'teams that did score and are level still share the place');
   });
 
   test('level on placements: more activity wins ranks higher; still level after that is shown as a tie', () => {
@@ -139,11 +142,12 @@ describe('the overall leaderboard', () => {
     assert.ok(by.vibe!.rank < by.titans!.rank || by.vibe!.wins > by.titans!.wins);
   });
 
-  test('the three activities, in the order they are played, and how they link', () => {
-    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Funny Pose Challenge', 'Tech Trivia']);
-    assert.deepEqual(ACTIVITIES.map((a) => a.id), ['typedrive', 'pose', 'trivia']);
+  test('the four activities, in the order they are played, and how they link', () => {
+    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Funny Pose Challenge', 'Playing Cards', 'Tech Trivia']);
+    assert.deepEqual(ACTIVITIES.map((a) => a.id), ['typedrive', 'pose', 'cards', 'trivia']);
     assert.equal(nextActivity('typedrive'), 'pose');
-    assert.equal(nextActivity('pose'), 'trivia');
+    assert.equal(nextActivity('pose'), 'cards');
+    assert.equal(nextActivity('cards'), 'trivia');
     assert.equal(nextActivity('trivia'), null);
     assert.ok(isScreen('hub') && isScreen('pose') && !isScreen('chess') && !isScreen(3));
   });
@@ -167,14 +171,15 @@ describe('the dashboard and the activities in a room', () => {
   const info = (s: Sim): RoomInfo => s.room.roomInfo();
   const trivia = (s: Sim): TriviaInfo => info(s).trivia!;
 
-  test('a new room opens on the dashboard with the three activities in order, none started, every score at zero', () => {
+  test('a new room opens on the dashboard with the four activities in order, none started, every score at zero', () => {
     sim = new Sim({}, 8, false, { activity: null });
     const i = info(sim);
     assert.equal(i.activity, 'hub');
-    assert.deepEqual(i.activities.map((a) => [a.id, a.status]), [['typedrive', 'pending'], ['pose', 'pending'], ['trivia', 'pending']]);
+    assert.deepEqual(i.activities.map((a) => [a.id, a.status]), [['typedrive', 'pending'], ['pose', 'pending'], ['cards', 'pending'], ['trivia', 'pending']]);
     assert.ok(i.activities.every((a) => TEAM_IDS.every((t) => a.points[t] === 0)));
     assert.deepEqual(i.overall.map((r) => r.placement), [0, 0, 0]);
     assert.equal(i.pose, null);
+    assert.equal(i.cards, null);
     assert.equal(i.trivia, null);
     assert.equal(sim.room.roomInfo().teams.length, 3, 'the same three teams as TypeDrive');
   });
@@ -208,6 +213,7 @@ describe('the dashboard and the activities in a room', () => {
     assert.deepEqual(i.activities[0]!.points, { titans: 60, vibe: 95, ctrl: 130 });
     assert.deepEqual(i.activities[1]!.points, zeroPoints());
     assert.deepEqual(i.activities[2]!.points, zeroPoints());
+    assert.deepEqual(i.activities[3]!.points, zeroPoints());
     assert.equal(i.activities[0]!.status, 'live');
     assert.equal(s.room.setActivity(host(s), 'typedrive'), true, 'and come back to the results where they were');
     assert.equal(info(s).phase, 'results');
@@ -364,8 +370,8 @@ describe('the dashboard and the activities in a room', () => {
     assert.equal(s.room.triviaCommand(host(s), 'next'), false);
     // Tech Trivia's score is its own
     const i = info(s);
-    assert.deepEqual(i.activities[2]!.points, total);
-    assert.equal(i.activities[2]!.status, 'done');
+    assert.deepEqual(i.activities.find((a) => a.id === 'trivia')!.points, total);
+    assert.equal(i.activities.find((a) => a.id === 'trivia')!.status, 'done');
     assert.deepEqual(i.activities[0]!.points, zeroPoints());
     assert.deepEqual(i.activities[1]!.points, zeroPoints());
     assert.equal(overallLeaders(i.overall)[0], 'titans');
@@ -404,7 +410,7 @@ describe('the dashboard and the activities in a room', () => {
     assert.deepEqual(r.gained, { titans: 10, vibe: 0, ctrl: 0 });
   });
 
-  test('scores for the three activities stay apart and the overall leaderboard adds the placements', () => {
+  test('scores for the activities stay apart and the overall leaderboard adds the placements', () => {
     const s = lobby(50, {});
     // TypeDrive: Ctrl wins
     s.room.setActivity(host(s), 'typedrive');
@@ -436,18 +442,20 @@ describe('the dashboard and the activities in a room', () => {
     }
     s.room.setActivity(host(s), 'hub');
     const i = info(s);
-    assert.deepEqual(i.activities.map((a) => a.status), ['done', 'done', 'done']);
-    const [td, em, tr] = i.activities.map((a) => a.points) as [Record<TeamId, number>, Record<TeamId, number>, Record<TeamId, number>];
+    assert.deepEqual(i.activities.map((a) => a.status), ['done', 'done', 'pending', 'done']);
+    const [td, em, ca, tr] = i.activities.map((a) => a.points) as Record<TeamId, number>[];
+    assert.deepEqual(ca, zeroPoints(), 'Playing Cards was not played');
     assert.deepEqual(td, { titans: 60, vibe: 95, ctrl: 130 });
     assert.deepEqual(em, { titans: 3 * POSE_POINTS, vibe: POSE_POINTS, ctrl: 0 });
     assert.ok(tr.vibe > 0 && tr.titans === 0 && tr.ctrl === 0);
-    // placements: TypeDrive ctrl 3 / vibe 2 / titans 1; Funny Pose titans 3 / vibe 2 / ctrl 1; Trivia vibe 3 / (titans & ctrl share 2nd: 2 each)
+    // placements: TypeDrive ctrl 3 / vibe 2 / titans 1; Funny Pose titans 3 / vibe 2 / ctrl 0 (scored nothing); Trivia vibe 3 / titans and
+    // ctrl 0 (scored nothing); Playing Cards was not played and adds nothing
     const by = Object.fromEntries(i.overall.map((r) => [r.id, r]));
-    assert.deepEqual([by.titans!.placement, by.vibe!.placement, by.ctrl!.placement], [1 + 3 + 2, 2 + 2 + 3, 3 + 1 + 2]);
+    assert.deepEqual([by.titans!.placement, by.vibe!.placement, by.ctrl!.placement], [1 + 3 + 0, 2 + 2 + 3, 3 + 0 + 0]);
     assert.equal(by.vibe!.rank, 1);
     assert.equal(by.vibe!.tied, false);
     assert.deepEqual(overallLeaders(i.overall), ['vibe']);
-    assert.ok(by.titans!.tied && by.ctrl!.tied && by.titans!.rank === 2, 'level on points and wins: shown as a tie for second, not ordered arbitrarily');
+    assert.ok(by.titans!.rank === 2 && by.ctrl!.rank === 3 && !by.titans!.tied, 'titans second, ctrl third');
   });
 
   test('the snapshot stays small with 50 participants in the middle of a trivia question', () => {
@@ -472,7 +480,7 @@ describe('the activities over real WebSockets', () => {
       sockets.push(...all);
       await sleep(80);
       for (const c of all) assert.equal(c.room.activity, 'hub', 'everyone lands on the dashboard');
-      assert.deepEqual(host.room.activities.map((a) => a.id), ['typedrive', 'pose', 'trivia']);
+      assert.deepEqual(host.room.activities.map((a) => a.id), ['typedrive', 'pose', 'cards', 'trivia']);
 
       // a driver cannot move the room; garbage is ignored
       drivers[0]!.send({ t: 'activity', activity: 'trivia' });
@@ -504,7 +512,7 @@ describe('the activities over real WebSockets', () => {
       assert.deepEqual(r.gained, { titans: 10, vibe: 0, ctrl: 0 }, 'the first correct answer (a Titan) wins; the later Ctrl answer scores nothing');
       assert.equal(r.first!.team, 'titans');
       for (const c of all) assert.deepEqual(c.room.trivia!.scores, r.gained);
-      assert.deepEqual(host.room.activities[2]!.points, r.gained);
+      assert.deepEqual(host.room.activities.find((a) => a.id === 'trivia')!.points, r.gained);
 
       // the host moves on; a late answer to the old question is refused
       host.send({ t: 'trivia', op: 'next' });

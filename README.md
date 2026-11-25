@@ -90,16 +90,16 @@ phone sleeps or Wi-Fi blips they are put back in the same seat automatically; th
 The host is always the admin (see "The admin and the players" above): if the admin leaves or drops, **host rights never pass
 to a driver** — the race that is running finishes normally, and the room waits until the admin is back.
 
-## 2b. The Weekly Fun Activity (three games in one room)
+## 2b. The Weekly Fun Activity (four games in one room)
 
-The app now opens on the **Weekly Fun Activity dashboard**: three games, played in this order, with the same rooms, players
-and three teams. **Open TypeDrive** (or Funny Pose Challenge / Tech Trivia) shows the name / **Host a room** / **Join a room** page — for
-TypeDrive that is the original landing page, unchanged; the other two use the same form with their own wording. A room you create
+The app now opens on the **Weekly Fun Activity dashboard**: four games, played in this order, with the same rooms, players
+and three teams. **Open TypeDrive** (or Funny Pose Challenge / Playing Cards / Tech Trivia) shows the name / **Host a room** / **Join a room** page — for
+TypeDrive that is the original landing page, unchanged; the others use the same form with their own wording. A room you create
 there **opens straight in that game's lobby** (TypeDrive → the race lobby, the others → their start screen) and waits for the host
 to start; people who join follow the room to wherever it is. **Dashboard** (top right of that page) goes back, and **Leave** from any
 room returns to the dashboard. A shared **invite link** skips the dashboard and opens on *Join* with the code filled in. Inside a
 room there is also an in-room dashboard (the host's **Activity hub** button or the stepper) with the room code, all scores and the overall
-leaderboard; the **host** takes the whole room into an activity (every screen follows at once) and back between games. The host only organises — in all three games the host does not
+leaderboard; the **host** takes the whole room into an activity (every screen follows at once) and back between games. The host only organises — in all four games the host does not
 play and earns nothing. Teams are picked on joining and can be switched on the dashboard, but not while the Funny Pose Challenge or
 Tech Trivia is on.
 
@@ -126,7 +126,14 @@ Tech Trivia is on.
    all in `shared/poses.ts`, each drawn from joint angles by `src/portal/PoseDrawing.tsx`, so no image files are needed). A session
    deals 8 of them, spread over the categories, and the next session avoids those until the bank would run short. Which pose a round
    has is dealt by the server and sent to the screens only when the host reveals it.
-3. **Tech Trivia** — **5 questions** per quiz, each from a different topic (Python, AI, SQL, Git, Cloud, general software; bank of 24 in
+3. **Playing Cards** (find the joker) — **5 rounds**, each harder than the last (3, 4, 4, 5, 5 cards; 6 → 14 swaps; each swap
+   420 → 240 ms). The host presses **Show the joker**: the cards turn face up for 2.2 s so everyone sees where the joker is, then they
+   turn face down and **shuffle on every screen at once** — the server sends the swap list and the start time, and every screen
+   animates the same swaps from the server's clock (transform only, so it stays smooth). Then everyone taps the card they think the
+   joker is under (one pick per round, final). The host presses **Reveal answer**: every card turns over. **The first correct pick
+   wins 10 points for that player's team** (earliest by the server's clock); every other pick scores 0, and nobody scores if nobody
+   found it. Final screen: team podium and leaderboard. All in `server/games/cards.ts` and `src/screens/PlayingCards.tsx`.
+4. **Tech Trivia** — **5 questions** per quiz, each from a different topic (Python, AI, SQL, Git, Cloud, general software; bank of 24 in
    `server/data/trivia-bank.ts`), one at a time with four options and a 20 s timer. Everyone answers on their own screen; an answer
    is final. **First correct answer wins 10 points for your team**: per question only the earliest correct answer (by the server's
    clock) scores; every other answer, right or wrong, scores 0, and nobody scores if nobody gets it right. The question closes when
@@ -135,9 +142,10 @@ Tech Trivia is on.
    (by questions won).
 
 **Scores.** Each activity keeps its **own** team points (shown on its card on the dashboard). The **overall leaderboard** adds up
-**placements** — in every activity that has scored, 1st = 3, 2nd = 2, 3rd = 1 (equal scores share a place) — because the games score
-on very different scales (a race adds hundreds, a trivia question at most 200); teams level on placements are ordered by how many
-activities they lead, and if they are still level the dashboard shows a **tie** rather than picking someone. When all three are complete
+**placements** — in every activity that has scored, 1st = 3, 2nd = 2, 3rd = 1 (equal scores share a place), and a team that scored
+**nothing** in an activity gets **nothing** for it — because the games score on very different scales (a race adds hundreds, a
+trivia question 10); teams level on placements are ordered by how many
+activities they lead, and if they are still level the dashboard shows a **tie** rather than picking someone. When all four are complete
 the dashboard announces the overall winner (or tie). Replaying an activity replaces only that activity's score. Everything is
 computed and synchronised by the server (`shared/activities.ts` is the single definition of the order, the point values and the
 overall ranking); a client never decides a pick, an answer or a score.

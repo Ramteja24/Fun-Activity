@@ -19,6 +19,7 @@ import { isScreen, overallStandings, type ActivityScore, type ActivityStatus, ty
 import type { RoomConfig } from './config';
 import { newPoseMemory, PoseSession } from './games/pose';
 import type { Eligible } from './games/shared';
+import { CardsSession } from './games/cards';
 import { TriviaSession } from './games/trivia';
 import { passagesFor } from './passages';
 
@@ -118,6 +119,8 @@ export class Room {
   private pose: PoseSession | null = null;
   private readonly poseMemory = newPoseMemory();
   private poseSessions = 0;
+  private cards: CardsSession | null = null;
+  private cardsSessions = 0;
   private trivia: TriviaSession | null = null;
   private readonly triviaUsed = new Set<string>();
   private triviaSessions = 0;
@@ -262,7 +265,7 @@ export class Room {
   setTeam(p: Player, rawTeam: unknown): boolean {
     if (!isTeamId(rawTeam) || p.left || p.id === this.hostId || this.matchEnded) return false;
     if (this.phase !== 'lobby' && this.phase !== 'results') return false;
-    if (this.activity === 'pose' || this.activity === 'trivia') return false; // who is on which team is fixed while those games run
+    if (this.activity === 'pose' || this.activity === 'cards' || this.activity === 'trivia') return false; // who is on which team is fixed while those games run
     if (p.team === rawTeam) return true;
     p.team = rawTeam;
     this.touch();
@@ -627,7 +630,7 @@ export class Room {
 
   // ------------------------------------------------------------------ the activities
 
-  /** Who can take part in the Funny Pose Challenge and Tech Trivia: connected participants who picked a team. Never the host. */
+  /** Who can take part in the Funny Pose Challenge, Playing Cards and Tech Trivia: connected participants who picked a team. Never the host. */
   participants(): Eligible[] {
     return [...this.players.values()]
       .filter((p) => p.connected && !p.left && p.id !== this.hostId && p.team !== null)
@@ -636,7 +639,7 @@ export class Room {
 
   /**
    * Host: take the whole room to the dashboard or to an activity (every screen follows). TypeDrive cannot be left in the middle
-   * of a race; the Funny Pose Challenge and Tech Trivia keep their state, so the host can come back to them.
+   * of a race; the Funny Pose Challenge, Playing Cards and Tech Trivia keep their state, so the host can come back to them.
    */
   setActivity(byId: string, next: unknown): boolean {
     if (byId !== this.hostId || !isScreen(next)) return false;
@@ -705,6 +708,57 @@ export class Room {
     return true;
   }
 
+  /**
+   * Host: run Playing Cards. `start` begins a session (replacing a finished one), `show` turns the cards face up (the shuffle follows
+   * by itself), `reveal` turns them over and scores the round, `next` moves on, `reset` throws the session away.
+   */
+  cardsCommand(byId: string, op: unknown): boolean {
+    if (byId !== this.hostId || this.activity !== 'cards') return false;
+    const s = this.cards;
+    let ok: boolean;
+    switch (op) {
+      case 'start': {
+        if (s && !s.over) return false;
+        s?.dispose();
+        this.cardsSessions += 1;
+        this.cards = new CardsSession(
+          { clock: this.clock, rand: this.rand, eligible: () => this.participants(), changed: () => this.broadcastRoom(), picked: () => this.scheduleAnswersBroadcast() },
+          this.cardsSessions,
+        );
+        ok = true;
+        break;
+      }
+      case 'reset':
+        if (!s) return false;
+        s.dispose();
+        this.cards = null;
+        ok = true;
+        break;
+      case 'show':
+        ok = !!s?.show();
+        break;
+      case 'reveal':
+        ok = !!s?.revealNow();
+        break;
+      case 'next':
+        ok = !!s?.next();
+        break;
+      default:
+        return false;
+    }
+    if (!ok) return false;
+    this.touch();
+    this.broadcastRoom();
+    return true;
+  }
+
+  /** A participant picks the card they think the joker is under. */
+  cardPick(p: Player, round: unknown, card: unknown): boolean {
+    if (this.activity !== 'cards' || !this.cards || typeof round !== 'number' || typeof card !== 'number') return false;
+    if (p.id === this.hostId || p.left || p.team === null) return false;
+    return this.cards.pick({ id: p.id, name: p.name, team: p.team }, round, card);
+  }
+
   /** Host: run Tech Trivia. `start` begins a quiz (replacing a finished one), `reveal` closes the question now, `next` moves on. */
   triviaCommand(byId: string, op: unknown): boolean {
     if (byId !== this.hostId || this.activity !== 'trivia') return false;
@@ -746,7 +800,7 @@ export class Room {
     return this.trivia.answer(p.id, q, choice);
   }
 
-  /** Answers arrive in bursts: tell everyone how many are in a moment from now, not once per answer. */
+  /** Answers (and card picks) arrive in bursts: tell everyone how many are in a moment from now, not once per answer. */
   private scheduleAnswersBroadcast(): void {
     if (this.answersTimer) return;
     this.answersTimer = setTimeout(() => {
@@ -762,6 +816,7 @@ export class Room {
     return [
       { id: 'typedrive', status: status(this.activity === 'typedrive' || this.matchRaces > 0, this.matchEnded), points: this.teamTotals() },
       { id: 'pose', status: status(this.activity === 'pose' || !!this.pose, !!this.pose?.over), points: this.pose?.scores() ?? zeroPoints() },
+      { id: 'cards', status: status(this.activity === 'cards' || !!this.cards, !!this.cards?.over), points: this.cards?.scores() ?? zeroPoints() },
       { id: 'trivia', status: status(this.activity === 'trivia' || !!this.trivia, !!this.trivia?.over), points: this.trivia?.scores() ?? zeroPoints() },
     ];
   }
@@ -794,6 +849,7 @@ export class Room {
     if (this.goTimer) clearTimeout(this.goTimer);
     if (this.answersTimer) clearTimeout(this.answersTimer);
     this.pose?.dispose();
+    this.cards?.dispose();
     this.trivia?.dispose();
     this.tickTimer = this.goTimer = this.answersTimer = null;
   }
@@ -832,6 +888,7 @@ export class Room {
       activities,
       overall: overallStandings(activities),
       pose: this.pose?.info() ?? null,
+      cards: this.cards?.info() ?? null,
       trivia: this.trivia?.info() ?? null,
     };
   }

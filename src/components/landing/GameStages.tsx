@@ -1,14 +1,16 @@
 import { useId, type CSSProperties } from 'react';
 import { poseById } from '../../../shared/poses';
 import { PoseDrawing } from '../../portal/PoseDrawing';
+import { CardBack, CardFace, JokerFace } from '../cards/CardArt';
 
-// The artwork on the Funny Pose Challenge and Tech Trivia landing pages (the name / host / join page opened for those two games). Both are
+// The artwork on the Funny Pose Challenge, Playing Cards and Tech Trivia landing pages (the name / host / join page opened for those two games). Both are
 // pictures drawn in SVG / CSS — no images, no data from the room — and every motion is a CSS class in src/games.css that is off under
 // reduced motion. TypeDrive's landing page has its own scene and does not use this file.
 
 /** Facts shown under each game's introduction, taken from the rules of the game (see README). */
 export const GAME_FACTS = {
   pose: ['8 rounds', '24 funny poses', '+10 pts a round'],
+  cards: ['5 rounds', '3–5 cards', 'First right: +10 pts'],
   trivia: ['5 questions', '20 s to answer', 'First correct: +10 pts'],
 } as const;
 
@@ -113,6 +115,54 @@ function TopicGlyph({ k, c }: { k: (typeof TOPICS)[number]['key']; c: string }) 
 }
 
 /** A digital quiz arena: a giant glowing question mark over a lit stage, the five topics floating around it, four answer panels. */
+// ------------------------------------------------------------------------------------------------ Playing Cards
+/** A green card table: four cards face down in an arc, the joker lifted in the middle under a warm light. */
+export function CardTable() {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const cards = [
+    { x: 236, r: -14, y: 150 },
+    { x: 378, r: -6, y: 118 },
+    { x: 642, r: 6, y: 118 },
+    { x: 784, r: 14, y: 150 },
+  ];
+  return (
+    <section className="gl-stage gl-cards-stage" aria-hidden>
+      <svg viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid slice" className="gl-arena">
+        <defs>
+          <radialGradient id={`${uid}felt`} cx="0.5" cy="0.4" r="0.8">
+            <stop offset="0" stopColor="#14a372" />
+            <stop offset="0.55" stopColor="#0b6e4d" />
+            <stop offset="1" stopColor="#042a1e" />
+          </radialGradient>
+          <radialGradient id={`${uid}glow`} cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#fff1bf" stopOpacity="0.9" />
+            <stop offset="1" stopColor="#fff1bf" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="1100" height="380" fill={`url(#${uid}felt)`} />
+        <ellipse cx="550" cy="210" rx="500" ry="170" fill="none" stroke="#f3c969" strokeOpacity="0.3" strokeWidth="3" />
+        <ellipse cx="550" cy="190" rx="180" ry="150" fill={`url(#${uid}glow)`} className="gl-cards-glow" />
+        {cards.map((c, i) => (
+          <g key={i} className="gl-card-bob" style={{ '--i': i } as CSSProperties}>
+            <g transform={`rotate(${c.r} ${c.x + 40} ${c.y + 112})`}>
+              {i === 1 ? <CardFace x={c.x} y={c.y} width={80} height={112} rank="K" suit="♥" /> : <CardBack x={c.x} y={c.y} width={80} height={112} />}
+            </g>
+          </g>
+        ))}
+        <g className="gl-joker">
+          <JokerFace x={496} y={64} width={108} height={151} />
+        </g>
+        <g fontFamily="Georgia, serif" fontWeight="700" fontSize="44" fill="#f3c969" fillOpacity="0.4">
+          <text x="80" y="330">♠</text>
+          <text x="150" y="356">♥</text>
+          <text x="930" y="350">♦</text>
+          <text x="1000" y="320">♣</text>
+        </g>
+      </svg>
+    </section>
+  );
+}
+
 export function TriviaArena() {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const panels = [

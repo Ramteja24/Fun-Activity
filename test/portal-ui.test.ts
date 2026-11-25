@@ -50,8 +50,8 @@ describe('routing', () => {
 describe('the dashboard', () => {
   const hub = read('src/screens/Hub.tsx');
 
-  test('lists the three activities from the shared definition, in order, with status and their own team scores', () => {
-    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Funny Pose Challenge', 'Tech Trivia']);
+  test('lists the four activities from the shared definition, in order, with status and their own team scores', () => {
+    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Funny Pose Challenge', 'Playing Cards', 'Tech Trivia']);
     assert.match(hub, /ACTIVITIES\.map\(\(a, i\) =>/);
     assert.match(hub, /STATUS_LABEL\[score\.status\]/);
     assert.match(hub, /score\.points\[t\.id\]/);
@@ -59,7 +59,8 @@ describe('the dashboard', () => {
   });
 
   test('only the host can open an activity; everyone else is told it is up to the host', () => {
-    assert.match(hub, /\{isHost \? \(\s*<button type="button" className="ph-open[^"]*" onClick=\{\(\) => openActivity\(a\.id\)\}/);
+    assert.match(hub, /\{isHost \? \(\s*<button\s+type="button"\s+className="ph-open[^"]*"\s+onClick=\{\(\) => openActivity\(a\.id\)\}/);
+    assert.match(hub, /aria-label=\{score\.status === 'pending' \? `Open \$\{a\.name\}`/, 'the full name for screen readers; the card already shows it');
     assert.match(hub, /waiting for the host/i);
     const parts = read('src/portal/parts.tsx');
     assert.match(parts, /return isHost \? \(\s*<button key=\{target\} type="button" className=\{cls\}/, 'the stepper is clickable for the host only');

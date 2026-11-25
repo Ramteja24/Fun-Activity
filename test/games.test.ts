@@ -5,7 +5,7 @@ import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { POSE_POINTS, POSE_ROUNDS, TRIVIA_LIMIT_MS, TRIVIA_POINTS, TRIVIA_QUESTIONS } from '../shared/activities';
+import { CARDS_PER_ROUND, CARDS_POINTS, CARDS_ROUNDS, POSE_POINTS, POSE_ROUNDS, TRIVIA_LIMIT_MS, TRIVIA_POINTS, TRIVIA_QUESTIONS } from '../shared/activities';
 import { POSE_BANK, poseById } from '../shared/poses';
 import { GAME_FACTS, PoseStage, TriviaArena } from '../src/components/landing/GameStages';
 
@@ -68,15 +68,19 @@ describe('the facts under each introduction are the game’s own numbers', () =>
     assert.deepEqual([...GAME_FACTS.pose], [`${POSE_ROUNDS} rounds`, `${POSE_BANK.length} funny poses`, `+${POSE_POINTS} pts a round`]);
   });
 
+  test('Playing Cards: rounds, cards and points come from the shared rules', () => {
+    assert.deepEqual([...GAME_FACTS.cards], [`${CARDS_ROUNDS} rounds`, `${Math.min(...CARDS_PER_ROUND)}–${Math.max(...CARDS_PER_ROUND)} cards`, `First right: +${CARDS_POINTS} pts`]);
+  });
+
   test('Tech Trivia: questions, seconds and the best score of a question come from the shared rules', () => {
     assert.deepEqual([...GAME_FACTS.trivia], [`${TRIVIA_QUESTIONS} questions`, `${TRIVIA_LIMIT_MS / 1000} s to answer`, `First correct: +${TRIVIA_POINTS} pts`]);
   });
 });
 
 describe('the landing page: only the look changed', () => {
-  test('the artwork and the facts are for Funny Pose and Tech Trivia only; TypeDrive’s page keeps its own scene and how-to-play', () => {
+  test('the artwork and the facts are for Funny Pose, Playing Cards and Tech Trivia only; TypeDrive’s page keeps its own scene and how-to-play', () => {
     assert.match(landing, /className=\{game \? `lp lp-g lp-g-\$\{game\.id\} ac-\$\{game\.id\}` : 'lp ac-typedrive'\}/);
-    assert.match(landing, /\{game \? \(\s*<div className="gl-wrap en-art rise"[^>]*>\s*\{game\.id === 'pose' \? <PoseStage \/> : <TriviaArena \/>\}/);
+    assert.match(landing, /\{game \? \(\s*<div className="gl-wrap en-art rise"[^>]*>\s*\{game\.id === 'pose' \? <PoseStage \/> : game\.id === 'cards' \? <CardTable \/> : <TriviaArena \/>\}/);
     assert.match(landing, /\) : \(\s*<div className="lp-scene en-art rise"[^>]*>\s*<RaceScene \/>/);
     assert.match(landing, /\{!game && <HowToPlay \/>\}/);
     assert.doesNotMatch(landing, /FeatureStrip/, 'the strip of four feature lines under the page is gone');

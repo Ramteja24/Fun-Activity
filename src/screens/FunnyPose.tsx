@@ -31,7 +31,7 @@ export function FunnyPoseScreen() {
 
   const title = (
     <PortalTitle
-      kicker="Activity 2 of 3"
+      kicker="Activity 2 of 4"
       title="Funny Pose Challenge"
       lead={
         p && p.stage !== 'over'

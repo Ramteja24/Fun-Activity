@@ -4,12 +4,18 @@
    them (layout, panels, colours of the UI) is src/ui/entry.css. Every motion here is listed in the reduced-motion block at the end.
    ===================================================================================================================== */
 
-/* ---------------------------------------------------------------------------------------------- the two games' art colours */
+/* ---------------------------------------------------------------------------------------------- the games' art colours */
 .lp-g-pose {
   --g: #ff5fa8;
   --g-rgb: 255, 95, 168;
   --g2: #ffd04a;
   --g2-rgb: 255, 208, 74;
+}
+.lp-g-cards {
+  --g: #34d399;
+  --g-rgb: 52, 211, 153;
+  --g2: #f3c969;
+  --g2-rgb: 243, 201, 105;
 }
 .lp-g-trivia {
   --g: #4aa3ff;
@@ -1470,5 +1476,49 @@
   .gl-confetti,
   .gl-motes {
     display: none;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------------------------- Playing Cards: the card table */
+.gl-cards-stage {
+  background: #063a29;
+}
+.gl-card-bob {
+  transform-box: fill-box;
+  animation: gl-card-bob 3s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i, 0) * 0.35s);
+}
+@keyframes gl-card-bob {
+  to {
+    transform: translateY(-8px);
+  }
+}
+.gl-joker {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: gl-joker-float 3.6s ease-in-out infinite alternate;
+}
+@keyframes gl-joker-float {
+  to {
+    transform: translateY(-12px) rotate(1.5deg);
+  }
+}
+.gl-cards-glow {
+  animation: gl-cards-glow 4s ease-in-out infinite alternate;
+}
+@keyframes gl-cards-glow {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-card-bob,
+  .gl-joker,
+  .gl-cards-glow {
+    animation: none;
   }
 }

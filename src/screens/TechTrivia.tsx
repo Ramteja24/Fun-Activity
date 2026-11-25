@@ -24,7 +24,7 @@ export function TechTriviaScreen() {
 
   const title = (
       <PortalTitle
-      kicker="Activity 3 of 3"
+      kicker="Activity 4 of 4"
       title="Tech Trivia"
       lead={
         t && t.stage !== 'over'

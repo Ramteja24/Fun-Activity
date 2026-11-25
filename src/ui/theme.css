@@ -63,6 +63,8 @@
   --g-typedrive-50: #fff5ea;
   --g-pose: #db2777;
   --g-pose-50: #fdf0f6;
+  --g-cards: #059669;
+  --g-cards-50: #ecfdf5;
   --g-trivia: #2563eb;
   --g-trivia-50: #eef3ff;
 
@@ -91,6 +93,7 @@
 .tm-ctrl { --tm: var(--ctrl); --tm-50: var(--ctrl-50); }
 .ac-typedrive { --ac: var(--g-typedrive); --ac-50: var(--g-typedrive-50); }
 .ac-pose { --ac: var(--g-pose); --ac-50: var(--g-pose-50); }
+.ac-cards { --ac: var(--g-cards); --ac-50: var(--g-cards-50); }
 .ac-trivia { --ac: var(--g-trivia); --ac-50: var(--g-trivia-50); }
 .ac-hub { --ac: var(--brand); --ac-50: var(--brand-50); }
 

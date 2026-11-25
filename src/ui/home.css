@@ -608,9 +608,15 @@ button.pt-step:hover:not(:disabled) {
   padding: 0;
   list-style: none;
 }
-@media (min-width: 820px) {
+@media (min-width: 640px) {
   .ph-games {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .ph-games {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
   }
 }
 .ph-games > .ph-game {
@@ -2729,6 +2735,20 @@ button.pt-step:hover:not(:disabled) {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
+/* four games beside the rail: a one-line kind-of-game label and a two-line description keep the cards roomy */
+@media (min-width: 1100px) {
+  .ph-layout .ph-games {
+    gap: 12px;
+  }
+  .ph-layout .ph-games .ph-kick {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .ph-layout .ph-games .ph-game-tag {
+    -webkit-line-clamp: 2;
+  }
+}
 
 /* the stage and the rail share the frame's height: neither may stretch it */
 @media (min-width: 1000px) {
@@ -2775,4 +2795,187 @@ button.pt-step:hover:not(:disabled) {
 .ph-layout .ph-row-name {
   white-space: normal;
   line-height: 1.2;
+}
+
+
+/* ---------------------------------------------------------------------------------------------- Playing Cards */
+.pc-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  border-top: 4px solid var(--ac);
+}
+.pt .pc-stage {
+  padding: 22px 24px;
+}
+@media (max-width: 640px) {
+  .pt .pc-stage {
+    padding: 16px;
+  }
+}
+@media (min-width: 1000px) {
+  .pt-col > .pc-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+.pc-status {
+  margin-left: auto;
+  font: 700 14px/1 var(--font-display);
+  color: var(--ac);
+}
+.pc-preview .pc-status {
+  color: var(--warn);
+}
+/* the table: cards are placed with transform only (the shuffle writes them every frame); it sits in the middle of the stage */
+.pc-table {
+  position: relative;
+  flex: none;
+  width: 100%;
+  margin-block: auto;
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(70% 90% at 50% 40%, rgba(5, 150, 105, 0.1), transparent 70%),
+    var(--surface-2);
+  perspective: 1400px;
+}
+.pc-card {
+  position: absolute;
+  top: var(--pc-top, 22px);
+  left: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  transform-origin: 50% 60%;
+  will-change: transform;
+  transition: transform 0.45s var(--ease);
+}
+.pc-shuffle .pc-card {
+  transition: none;
+}
+.pc-flip {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotateY(180deg);
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.pc-flip.up {
+  transform: rotateY(0deg);
+}
+.pc-side {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 9% / 6.5%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 6px 16px rgba(21, 26, 45, 0.18);
+  transition: box-shadow 0.2s;
+}
+.pc-back {
+  transform: rotateY(180deg);
+}
+.pc-side svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pc-card.pickable {
+  cursor: pointer;
+}
+.pc-card.pickable:hover .pc-side,
+.pc-card.pickable:focus-visible .pc-side {
+  box-shadow: 0 0 0 3px var(--ac), 0 12px 26px rgba(5, 150, 105, 0.3);
+}
+.pc-card.pickable:focus-visible {
+  outline: none;
+}
+.pc-card.spot .pc-side {
+  box-shadow: 0 0 0 4px var(--gold), 0 0 28px rgba(212, 160, 23, 0.55);
+}
+.pc-card.mine .pc-side {
+  box-shadow: 0 0 0 3px var(--brand), 0 10px 22px rgba(246, 124, 1, 0.28);
+}
+.pc-card.won .pc-side {
+  box-shadow: 0 0 0 4px var(--success), 0 14px 30px rgba(22, 163, 74, 0.35);
+}
+.pc-mine,
+.pc-count {
+  position: absolute;
+  left: 50%;
+  z-index: 4;
+  transform: translateX(-50%);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font: 700 12px/1.2 var(--font-display);
+  white-space: nowrap;
+}
+.pc-mine {
+  top: -22px;
+  background: var(--brand);
+  color: #fff;
+}
+.pc-count {
+  bottom: -26px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.pc-count.won {
+  background: var(--success-50);
+  color: var(--success);
+}
+.pc-progress {
+  font: 500 14px/1.4 var(--font-display);
+  color: var(--ink-2);
+}
+.pc-progress b {
+  color: var(--ink);
+}
+.pc-reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+
+/* the dashboard picture */
+.ka-cards-joker {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: ka-cards-joker 3.2s ease-in-out infinite alternate;
+}
+@keyframes ka-cards-joker {
+  to {
+    transform: translateY(-7px);
+  }
+}
+.ka-cards-spark {
+  animation: ka-cards-spark 2.6s ease-in-out infinite alternate;
+}
+@keyframes ka-cards-spark {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ka-cards-glow {
+  animation: ka-cards-spark 3.8s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ka-cards-joker,
+  .ka-cards-spark,
+  .ka-cards-glow {
+    animation: none;
+  }
 }

@@ -53,7 +53,7 @@ const patchRoom = (patch: Partial<RoomInfo>) => useGame.setState((s) => (s.room 
 const demoNotice = () => useGame.setState({ notice: 'This is the 40-player demo — that button does nothing here.' });
 
 /** The actions the screens call. In the demo each is either a step through the demo or a harmless notice; none sends anything. */
-const REPLACED = ['create', 'join', 'setTeam', 'setDifficulty', 'start', 'endRace', 'backToLobby', 'endMatch', 'newMatch', 'openActivity', 'poseOp', 'triviaOp', 'answer', 'leave', 'kick', 'setEntry'] as const;
+const REPLACED = ['create', 'join', 'setTeam', 'setDifficulty', 'start', 'endRace', 'backToLobby', 'endMatch', 'newMatch', 'openActivity', 'poseOp', 'cardsOp', 'cardPick', 'triviaOp', 'answer', 'leave', 'kick', 'setEntry'] as const;
 
 /** Whose screen a tab shows. The lobby is always the host's (that is who sets a race up); the race and results can be a driver's. */
 const viewerFor = (tab: DemoTab): DemoDriver | null => (tab !== 'lobby' && useDemo.getState().view === 'driver' ? demoViewer(drivers) : null);

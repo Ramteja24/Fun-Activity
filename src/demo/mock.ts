@@ -172,6 +172,7 @@ export function demoRoom(o: DemoRoomOptions): RoomInfo {
     activities: [],
     overall: [],
     pose: null,
+    cards: null,
     trivia: null,
   };
 }

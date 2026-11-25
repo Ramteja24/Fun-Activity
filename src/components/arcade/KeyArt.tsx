@@ -1,15 +1,16 @@
 import { useId, type CSSProperties } from 'react';
+import { CardBack, JokerFace } from '../cards/CardArt';
 import type { ActivityId } from '../../../shared/activities';
 
-// The three games' key art on the dashboard cards: a road and a racer for TypeDrive, a lit stage with a performer for the Funny Pose
-// Challenge, a quiz screen for Tech Trivia. Pure SVG on one 320 × 200 canvas; the motion lives in src/ui/home.css (ka-*) and is off under
+// The games' key art on the dashboard cards: a road and a racer for TypeDrive, a lit stage with a performer for the Funny Pose
+// Challenge, a card table with the joker for Playing Cards, a quiz screen for Tech Trivia. Pure SVG on one 320 × 200 canvas; the motion lives in src/ui/home.css (ka-*) and is off under
 // reduced motion. Gradient / clip ids come from useId, so two copies on one page never clash.
 
 export function KeyArt({ id }: { id: ActivityId }) {
   const u = useId();
   return (
     <div className={`ka ka-${id}`} aria-hidden>
-      {id === 'typedrive' ? <TypeDriveArt u={u} /> : id === 'pose' ? <PoseArt u={u} /> : <TriviaArt u={u} />}
+      {id === 'typedrive' ? <TypeDriveArt u={u} /> : id === 'pose' ? <PoseArt u={u} /> : id === 'cards' ? <CardsArt u={u} /> : <TriviaArt u={u} />}
     </div>
   );
 }
@@ -650,6 +651,49 @@ function TriviaArt({ u }: { u: string }) {
         </radialGradient>
       </defs>
       <rect width="320" height="200" fill={`url(#${u}v)`} />
+    </svg>
+  );
+}
+
+function CardsArt({ u }: { u: string }) {
+  return (
+    <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <radialGradient id={`${u}felt`} cx="0.5" cy="0.45" r="0.75">
+          <stop offset="0" stopColor="#13a06f" />
+          <stop offset="0.6" stopColor="#0b6e4d" />
+          <stop offset="1" stopColor="#053a29" />
+        </radialGradient>
+        <radialGradient id={`${u}glow`} cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#fff3c4" stopOpacity="0.85" />
+          <stop offset="1" stopColor="#fff3c4" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="320" height="200" fill={`url(#${u}felt)`} />
+      <ellipse cx="160" cy="100" rx="150" ry="86" fill="none" stroke="#f3c969" strokeOpacity="0.35" strokeWidth="2" />
+      <ellipse cx="160" cy="104" rx="96" ry="72" fill={`url(#${u}glow)`} className="ka-cards-glow" />
+      <g className="ka-cards-fan">
+        <g transform="rotate(-16 160 170)">
+          <CardBack x={112} y={34} width={66} height={92} />
+        </g>
+        <g transform="rotate(16 160 170)">
+          <CardBack x={142} y={34} width={66} height={92} />
+        </g>
+        <g className="ka-cards-joker">
+          <JokerFace x={127} y={26} width={66} height={92} />
+        </g>
+      </g>
+      <g className="ka-cards-spark" fill="#fff7d6">
+        <path d="M86 52l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" />
+        <path d="M236 132l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" />
+        <path d="M244 46l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+      </g>
+      <g fontFamily="Georgia, serif" fontWeight="700" fontSize="22" fill="#f3c969" fillOpacity="0.55">
+        <text x="30" y="178">♠</text>
+        <text x="62" y="186">♥</text>
+        <text x="262" y="182">♦</text>
+        <text x="288" y="172">♣</text>
+      </g>
     </svg>
   );
 }
