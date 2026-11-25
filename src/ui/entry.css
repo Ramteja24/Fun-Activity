@@ -1,0 +1,391 @@
+/* =====================================================================================================================
+   Entry pages — the name / host / join page of TypeDrive, the Funny Pose Challenge and Tech Trivia (screens/Landing.tsx): the layout,
+   the form card, the team picker and TypeDrive's how-to-play strip. Builds on src/ui/theme.css. The pictures themselves (wordmark, race
+   strip, stage, arena) are src/ui/entry-art.css. The page carries .ac-<game>, so --ac / --ac-50 are the game's colour.
+   From 641 px wide the page fits the window: the copy and its picture on the left, the form on the right, how-to-play under both.
+   ===================================================================================================================== */
+
+/* the 40-player demo is a look at a big room on a big screen; on a phone the header keeps only Dashboard */
+@media (max-width: 560px) {
+  .lp .site-header .dd-open {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- frame */
+@media (min-width: 641px) {
+  .en-main {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: clamp(10px, 1.8vh, 20px);
+  }
+}
+.en-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  min-height: 0;
+}
+@media (min-width: 641px) and (max-width: 959px) {
+  .en-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    grid-template-areas: 'copy panel' 'art panel';
+    grid-template-rows: auto auto;
+    gap: 14px 24px;
+    align-content: center;
+  }
+}
+@media (min-width: 960px) {
+  .en-hero {
+    grid-template-columns: minmax(0, 1fr) clamp(360px, 30vw, 420px);
+    grid-template-areas: 'copy panel' 'art panel';
+    grid-template-rows: auto auto;
+    gap: clamp(10px, 1.8vh, 20px) clamp(28px, 3.4vw, 56px);
+    align-content: center;
+  }
+}
+@media (min-width: 641px) {
+  .en-copy {
+    grid-area: copy;
+  }
+  .en-panel {
+    grid-area: panel;
+    align-self: center;
+  }
+  .en-art {
+    grid-area: art;
+    align-self: start;
+    min-height: 0;
+  }
+}
+/* phones: words, then the form, then the picture */
+@media (max-width: 640px) {
+  .en-panel {
+    order: 1;
+  }
+  .en-art {
+    order: 2;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the words */
+.en-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(8px, 1.3vh, 14px);
+  min-width: 0;
+}
+.en-kicker {
+  flex: none;
+}
+.en-h1 {
+  font: 700 clamp(30px, 5.6vh, 54px) / 1.08 var(--font-display);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.en-lead {
+  max-width: 40rem;
+  font: 400 clamp(14.5px, 1.9vh, 17px) / 1.55 var(--font-display);
+  color: var(--ink-2);
+}
+
+/* TypeDrive's wordmark: as wide as the column allows, never taller than about a quarter of the window */
+.lp-h1.lp-car-wm {
+  max-width: min(100%, calc(23vh * 3.55), 820px);
+}
+@media (min-width: 641px) {
+  .en-main .rwm {
+    filter: drop-shadow(0 10px 16px rgba(21, 26, 45, 0.18));
+  }
+}
+@media (max-width: 640px) {
+  .lp-h1.lp-car-wm {
+    max-width: 100%;
+  }
+}
+
+/* facts of the game (Funny Pose / Tech Trivia) */
+.en-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.en-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh-1);
+  font: 600 14px/1 var(--font-display);
+  color: var(--ink);
+}
+.en-facts li::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ac, var(--brand));
+}
+
+/* ---------------------------------------------------------------------------------------------- the pictures in the layout */
+.en-art {
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-2);
+}
+.en-art .sc {
+  border-radius: var(--r-lg);
+}
+/* the race strip's rows follow the window height, so it always fits under the wordmark */
+.en-main .sc {
+  --lh: clamp(17px, 2.9vh, 34px);
+  --sky: clamp(28px, 5vh, 64px);
+  --wall: clamp(13px, 2.3vh, 28px);
+  --th: clamp(24px, 3.2vh, 38px);
+}
+.en-main .gl-stage {
+  height: clamp(190px, 38vh, 440px);
+  border-radius: var(--r-lg);
+  box-shadow: none;
+}
+@media (max-width: 640px) {
+  .en-main .gl-stage {
+    height: clamp(200px, 56vw, 260px);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the form card */
+.en-panel .lp-card {
+  box-shadow: var(--sh-2);
+}
+.en-panel .lp-card-in {
+  padding: clamp(14px, 2.4vh, 24px) clamp(16px, 1.6vw, 24px);
+}
+.en-panel .lp-card-head {
+  margin-bottom: clamp(10px, 1.6vh, 16px);
+}
+.en-panel .lp-form {
+  gap: clamp(10px, 1.6vh, 16px);
+}
+.en-panel .field {
+  height: clamp(40px, 5.4vh, 46px);
+}
+.en-panel .lp-go {
+  height: clamp(42px, 5.8vh, 50px);
+}
+.lp-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: clamp(12px, 1.8vh, 20px);
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-3);
+}
+.lp-tab {
+  height: clamp(34px, 4.6vh, 38px);
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font: 600 14px/1 var(--font-display);
+  color: var(--ink-2);
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+.lp-tab:hover {
+  color: var(--ink);
+}
+.lp-tab.on {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--sh-1);
+}
+/* name and room code side by side (the code is four characters) */
+.en-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+.en-code .field {
+  width: 116px;
+  text-align: center;
+  padding: 0 8px;
+}
+.lp-go-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.lp-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 500 13px/1.3 var(--font-display);
+  color: var(--ink-3);
+}
+.lp-help {
+  margin-top: clamp(10px, 1.6vh, 16px);
+  padding-top: clamp(10px, 1.6vh, 16px);
+  border-top: 1px solid var(--line);
+  font: 400 13px/1.5 var(--font-display);
+  color: var(--ink-3);
+}
+
+/* team picker */
+.tp-set legend {
+  margin-bottom: 6px;
+  padding: 0;
+}
+.tp {
+  display: grid;
+  gap: 6px;
+}
+.tp-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: clamp(42px, 5.6vh, 50px);
+  padding: 6px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface);
+  text-align: left;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    box-shadow 0.15s;
+}
+.tp-opt:hover {
+  border-color: var(--tm);
+}
+.tp-opt.on {
+  border-color: var(--tm);
+  background: var(--tm-50);
+  box-shadow: inset 0 0 0 1px var(--tm);
+}
+.tp-dot {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--tm);
+  box-sizing: border-box;
+  background: var(--surface);
+}
+.tp-opt.on .tp-dot {
+  background: var(--tm);
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
+.tp-text {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  min-width: 0;
+}
+.tp-name {
+  font: 600 14.5px/1.25 var(--font-display);
+  color: var(--ink);
+}
+.tp-sub {
+  font: 400 12.5px/1.25 var(--font-display);
+  color: var(--ink-3);
+}
+.tp-sugg {
+  flex: none;
+  margin-left: auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--tm);
+  color: #fff;
+  font: 600 11.5px/1 var(--font-display);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------------------------- how to play: one slim strip */
+.htp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+@media (min-width: 1100px) {
+  .htp {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 20px;
+  }
+}
+.htp-title {
+  font: 700 15px/1.2 var(--font-display);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.htp-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 560px) {
+  .htp-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 960px) {
+  .htp-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.htp-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: clamp(10px, 1.5vh, 14px) 14px;
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.htp-num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ac-50, var(--brand-50));
+  color: var(--brand-700);
+  font: 700 13px/1 var(--font-display);
+}
+.htp-body {
+  min-width: 0;
+}
+.htp-step h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  font: 600 14.5px/1.3 var(--font-display);
+}
+.htp-step h3 svg {
+  color: var(--ink-3);
+}
+.htp-step p {
+  font: 400 13px/1.4 var(--font-display);
+  color: var(--ink-2);
+}

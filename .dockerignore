@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.vite
+*.log
+.env
+.env.*
+docs
+test
+# original recordings are never part of an image (the app ships only public/music/f1-theme-trimmed.mp3 and the small public/sfx/ cues)
+*.mp4
+*.m4a
+*.wav
+# the admin login (a password hash) — never committed or baked into an image; cloud hosts use ADMIN_USERNAME / ADMIN_PASSWORD
+admin.json

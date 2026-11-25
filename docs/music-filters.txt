@@ -1,0 +1,5 @@
+dynaudnorm=f=1500:g=15:p=0.85:m=8:s=12,
+volume=-1dB,
+alimiter=limit=0.85:attack=3:release=60:level=disabled,
+afade=t=in:st=0:d=1.5:curve=qsin,
+afade=t=out:st=611.1:d=3:curve=qsin

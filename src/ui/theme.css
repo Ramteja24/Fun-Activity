@@ -1,0 +1,992 @@
+/* =====================================================================================================================
+   Weekly Fun Activity — design system (light theme).
+   One calm, light look for every screen: white surfaces on a soft grey page, GANTEC orange as the one brand colour,
+   sentence-case headings, no glows, no skewed or chrome lettering. Every screen's stylesheet (home.css, entry.css,
+   lobby.css, race.css, results.css) builds on the tokens and primitives below and does not redefine them.
+   ===================================================================================================================== */
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Outfit Variable', 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --color-ink: #151a2d;
+  --color-brand: #f67c01;
+}
+
+:root {
+  color-scheme: light;
+
+  /* page and surfaces */
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface-2: #f8f9fc;
+  --surface-3: #eef0f6;
+  --line: #e4e7ef;
+  --line-2: #d3d8e3;
+
+  /* text */
+  --ink: #151a2d;
+  --ink-2: #4b5370;
+  --ink-3: #7c849e;
+  --ink-inverse: #ffffff;
+
+  /* brand: GANTEC orange */
+  --brand: #f67c01;
+  --brand-600: #e06d00;
+  --brand-700: #b45600;
+  --brand-50: #fff5ea;
+  --brand-100: #ffe6cc;
+
+  /* status */
+  --blue: #2563eb;
+  --blue-50: #eef3ff;
+  --success: #16a34a;
+  --success-50: #ecfdf3;
+  --warn: #d97706;
+  --warn-50: #fffbeb;
+  --danger: #dc2626;
+  --danger-50: #fef2f2;
+  --gold: #d4a017;
+  --silver: #94a3b8;
+  --bronze: #c2733a;
+
+  /* the three teams */
+  --titans: #ea580c;
+  --titans-50: #fff3eb;
+  --vibe: #7c3aed;
+  --vibe-50: #f4eeff;
+  --ctrl: #0891b2;
+  --ctrl-50: #e8f8fc;
+
+  /* the three games */
+  --g-typedrive: #f67c01;
+  --g-typedrive-50: #fff5ea;
+  --g-pose: #db2777;
+  --g-pose-50: #fdf0f6;
+  --g-trivia: #2563eb;
+  --g-trivia-50: #eef3ff;
+
+  /* shape and depth */
+  --r-sm: 8px;
+  --r: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --sh-1: 0 1px 2px rgba(21, 26, 45, 0.06), 0 1px 1px rgba(21, 26, 45, 0.03);
+  --sh-2: 0 4px 14px rgba(21, 26, 45, 0.08);
+  --sh-3: 0 14px 36px rgba(21, 26, 45, 0.14);
+  --ring: 0 0 0 3px rgba(246, 124, 1, 0.28);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* legacy names still read by a few inline styles */
+  --orange: var(--brand);
+  --cyan: var(--ctrl);
+  --yellow: var(--gold);
+  --green: var(--success);
+  --rose: var(--g-pose);
+}
+
+/* team and game colour hooks: any element with one of these classes gets --tm / --ac to paint with */
+.tm-titans { --tm: var(--titans); --tm-50: var(--titans-50); }
+.tm-vibe { --tm: var(--vibe); --tm-50: var(--vibe-50); }
+.tm-ctrl { --tm: var(--ctrl); --tm-50: var(--ctrl-50); }
+.ac-typedrive { --ac: var(--g-typedrive); --ac-50: var(--g-typedrive-50); }
+.ac-pose { --ac: var(--g-pose); --ac-50: var(--g-pose-50); }
+.ac-trivia { --ac: var(--g-trivia); --ac-50: var(--g-trivia-50); }
+.ac-hub { --ac: var(--brand); --ac-50: var(--brand-50); }
+
+/* ---------------------------------------------------------------------------------------------- base */
+html,
+body,
+#root {
+  min-height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+/* no visible scrollbars anywhere: screens are laid out to fit the window; where a region still has to scroll (a long list,
+   a small phone) it scrolls without a bar */
+html,
+body,
+* {
+  scrollbar-width: none;
+}
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+html {
+  overflow-x: hidden;
+}
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+::selection {
+  background: var(--brand-100);
+}
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+p {
+  margin: 0;
+}
+.lp-sr-only,
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* gentle entrance used across screens (style="--d: .1s" staggers it) */
+.rise {
+  animation: ui-rise 0.4s var(--ease) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes ui-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- page shell */
+.lp {
+  min-height: 100dvh;
+  background: var(--bg);
+}
+/* full-height frame: the header on top, the screen's content filling exactly the rest of the window */
+.lp-body {
+  display: flex;
+  flex-direction: column;
+  /* --demo-h is the 40-player demo's bar while it is open (0 otherwise) */
+  height: calc(100dvh - var(--demo-h, 0px));
+  min-height: calc(100dvh - var(--demo-h, 0px));
+}
+.lp-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vh, 22px);
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(12px, 2.2vh, 24px) 20px clamp(12px, 2.2vh, 24px);
+  box-sizing: border-box;
+}
+@media (max-width: 640px) {
+  /* a phone may need to scroll a long screen: the frame grows instead of clipping (still no visible bar) */
+  .lp-body {
+    height: auto;
+  }
+  .lp-main {
+    gap: 14px;
+    padding: 14px 14px 24px;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- header */
+.site-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 1280px;
+  min-height: 64px;
+  margin: 0 auto;
+  padding: 10px 20px;
+  box-sizing: border-box;
+}
+.site-header-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.site-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .site-header {
+    min-height: 56px;
+    padding: 8px 14px;
+  }
+  .site-header-actions {
+    gap: 6px;
+  }
+}
+
+/* GANTEC lockup: the official logo, a hairline, "Weekly Connect" */
+.plogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  line-height: 1;
+}
+.plogo-logo {
+  display: inline-flex;
+}
+.plogo-img {
+  display: block;
+  width: auto;
+  height: 1em;
+}
+.plogo-sub {
+  padding-left: 0.5em;
+  border-left: 1px solid var(--line-2);
+  font: 600 0.46em/1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .plogo-sub {
+    display: none;
+  }
+}
+
+/* TypeDrive's own logo */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.logo .b {
+  color: var(--brand);
+}
+.logo-tag {
+  margin-left: 0.7em;
+  padding-left: 0.7em;
+  border-left: 1px solid var(--line-2);
+  font: 600 11px/1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+@media (max-width: 640px) {
+  .logo-tag {
+    display: none;
+  }
+}
+
+/* connection status */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font: 600 12.5px/1 var(--font-display);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.status-chip i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+}
+.status-chip.off i {
+  background: var(--warn);
+}
+@media (max-width: 640px) {
+  .status-chip {
+    padding: 0 9px;
+  }
+  .status-chip span {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- buttons
+   .btn + a variant is the button for new markup. The older class names the screens already use are styled as the
+   same buttons: .lp-go = primary, .lb-btn = secondary, .lb-leave = the header's quiet button. */
+.btn,
+.lp-go,
+.lb-btn,
+.lb-leave {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: 600 14px/1.15 var(--font-display);
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s,
+    transform 0.1s;
+  user-select: none;
+}
+.btn:active:not(:disabled),
+.lp-go:active:not(:disabled),
+.lb-btn:active:not(:disabled),
+.lb-leave:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn > span,
+.lp-go > span,
+.lb-btn > span,
+.lb-leave > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn svg,
+.lb-btn svg,
+.lb-leave svg {
+  flex: none;
+}
+
+/* sizes */
+.btn {
+  height: 40px;
+  padding: 0 16px;
+}
+.btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+.btn-lg,
+.lp-go {
+  height: 48px;
+  padding: 0 22px;
+  font-size: 15.5px;
+  border-radius: 12px;
+}
+.btn-block {
+  width: 100%;
+}
+
+/* primary */
+.btn-primary,
+.lp-go {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(180, 86, 0, 0.25);
+}
+.btn-primary:hover:not(:disabled),
+.lp-go:hover:not(:disabled) {
+  background: var(--brand-600);
+}
+.btn-primary:disabled,
+.lp-go:disabled {
+  background: var(--surface-3);
+  color: var(--ink-3);
+  box-shadow: none;
+}
+.lp-go {
+  width: 100%;
+}
+.lp-go-chev {
+  width: 16px;
+  height: 14px;
+}
+
+/* secondary */
+.btn-secondary,
+.lb-btn {
+  background: var(--surface);
+  border-color: var(--line-2);
+  color: var(--ink);
+  box-shadow: var(--sh-1);
+}
+.lb-btn {
+  height: 40px;
+  padding: 0 14px;
+}
+.btn-secondary:hover:not(:disabled),
+.lb-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--ink-3);
+}
+.lb-btn.done {
+  border-color: var(--success);
+  color: var(--success);
+  background: var(--success-50);
+}
+
+/* quiet (header) */
+.btn-ghost,
+.lb-leave {
+  background: transparent;
+  border-color: var(--line-2);
+  color: var(--ink-2);
+}
+.lb-leave {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13.5px;
+}
+.btn-ghost:hover:not(:disabled),
+.lb-leave:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+/* colour variants */
+.btn-success {
+  background: var(--success);
+  color: #fff;
+}
+.btn-success:hover:not(:disabled) {
+  background: #15803d;
+}
+.btn-danger {
+  background: var(--surface);
+  border-color: #f3b4b4;
+  color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-50);
+  border-color: var(--danger);
+}
+.btn-solid-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-solid-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+.btn-accent {
+  background: var(--ac, var(--brand));
+  color: #fff;
+}
+.btn-accent:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+.btn:disabled:not(.btn-primary) {
+  opacity: 0.5;
+}
+
+/* round icon button (header, race HUD) */
+.icon-btn,
+.music-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink-2);
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+.icon-btn:hover,
+.music-btn:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.music-btn.is-off,
+.icon-btn.is-off {
+  color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------------------------------------- cards */
+.card,
+.lp-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+}
+.lp-panel {
+  position: relative;
+  min-width: 0;
+}
+.lp-card-in {
+  padding: 22px;
+}
+@media (max-width: 640px) {
+  .lp-card-in {
+    padding: 16px;
+  }
+}
+.lp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.lp-card-title {
+  font: 700 18px/1.25 var(--font-display);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+/* section heading: a title with an optional muted note */
+.section-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font: 700 18px/1.3 var(--font-display);
+  color: var(--ink);
+}
+.section-title small,
+.section-title > span {
+  font: 500 13.5px/1.3 var(--font-display);
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
+
+/* small labels */
+.eyebrow,
+.lb-label,
+.lp-label {
+  display: block;
+  font: 600 12.5px/1.3 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ink-2);
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+/* pill */
+.chip,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font: 600 12.5px/1 var(--font-display);
+  white-space: nowrap;
+}
+.pill-brand {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+.pill-success {
+  background: var(--success-50);
+  color: var(--success);
+}
+.pill-warn {
+  background: var(--warn-50);
+  color: var(--warn);
+}
+.pill-accent {
+  background: var(--ac-50, var(--brand-50));
+  color: var(--ac, var(--brand-700));
+}
+.pill-team {
+  background: var(--tm-50);
+  color: var(--tm);
+}
+
+/* team dot */
+.tm-dot {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tm, var(--ink-3));
+}
+
+/* ---------------------------------------------------------------------------------------------- forms */
+.lp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.lp-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.field {
+  width: 100%;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 500 15.5px/1 var(--font-display);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.field::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+.field:hover {
+  border-color: var(--ink-3);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: var(--ring);
+}
+.code-box {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------------------------- room code */
+.lb-code {
+  display: flex;
+  gap: 8px;
+}
+.lb-plate {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 60px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+}
+.lb-plate b {
+  font: 700 30px/1 var(--font-mono);
+  color: var(--ink);
+}
+@media (max-width: 400px) {
+  .lb-plate {
+    width: 44px;
+    height: 52px;
+  }
+  .lb-plate b {
+    font-size: 26px;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- feedback */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ui-spin 0.7s linear infinite;
+  opacity: 0.8;
+}
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.toast {
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(560px, calc(100vw - 28px));
+  box-sizing: border-box;
+  padding: 12px 12px 12px 16px;
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--danger);
+  box-shadow: var(--sh-3);
+  font: 500 14px/1.4 var(--font-display);
+  color: var(--ink);
+  animation: ui-rise 0.25s var(--ease) both;
+}
+.toast.info {
+  border-left-color: var(--blue);
+}
+.toast button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-3);
+}
+.toast button:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.conn-banner {
+  position: fixed;
+  z-index: 90;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 9px 14px;
+  text-align: center;
+  font: 600 13.5px/1.3 var(--font-display);
+  background: var(--warn-50);
+  border-top: 1px solid #f5d48a;
+  color: #8a4b00;
+}
+.note {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warn-50);
+  color: #8a4b00;
+  font: 500 13px/1.45 var(--font-display);
+}
+.note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ---------------------------------------------------------------------------------------------- moving between games */
+.gt {
+  position: fixed;
+  z-index: 95;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: rgba(245, 246, 250, 0.7);
+  animation: gt-fade 1.3s var(--ease) both;
+}
+.gt-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 36px;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--ac, var(--brand));
+  box-shadow: var(--sh-3);
+}
+.gt-title span {
+  font: 600 13px/1 var(--font-display);
+  color: var(--ink-3);
+}
+.gt-title b {
+  font: 700 26px/1.2 var(--font-display);
+  color: var(--ink);
+}
+@keyframes gt-fade {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- music control */
+.music-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.music-hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font: 600 11.5px/1 var(--font-display);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.music-popover {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 8px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 220px;
+  padding: 14px;
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh-3);
+}
+.music-popover.is-hud {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+.music-pop-head {
+  display: flex;
+  justify-content: space-between;
+  font: 600 13px/1 var(--font-display);
+}
+.music-pop-title {
+  color: var(--ink);
+}
+.music-pop-val {
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+}
+.music-slider {
+  width: 100%;
+  accent-color: var(--brand);
+}
+.music-mute-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 13px/1 var(--font-display);
+}
+.music-mute-btn:hover {
+  background: var(--surface-3);
+}
+
+/* ---------------------------------------------------------------------------------------------- admin login */
+.admin-chip {
+  height: 32px;
+}
+@media (max-width: 760px) {
+  .admin-chip-name {
+    display: none;
+  }
+}
+.modal-scrim {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(21, 26, 45, 0.38);
+  animation: gt-in 0.18s var(--ease) both;
+}
+.modal {
+  width: min(420px, 100%);
+  box-sizing: border-box;
+  padding: 22px;
+  box-shadow: var(--sh-3);
+  animation: ui-rise 0.22s var(--ease) both;
+}
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.modal-sub {
+  margin-top: 4px;
+  font: 400 13.5px/1.45 var(--font-display);
+  color: var(--ink-2);
+}
+.modal-error {
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--danger-50);
+  color: var(--danger);
+  font: 600 13.5px/1.4 var(--font-display);
+}
+@keyframes gt-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

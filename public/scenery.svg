@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="100" viewBox="0 0 640 100">
+  <defs>
+    <pattern id="mesh" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M0 0 L10 10 M10 0 L0 10" stroke="#0a6a46" stroke-width="1.1" opacity=".55"/>
+    </pattern>
+    <g id="bld">
+      <rect x="0" y="0" width="26" height="42" rx="3" fill="#0a4a35"/>
+      <rect x="31" y="0" width="26" height="42" rx="3" fill="#0a4a35"/>
+      <rect x="8" y="7" width="10" height="17" rx="1.5" fill="#30c08a" opacity=".55"/>
+      <rect x="39" y="7" width="10" height="17" rx="1.5" fill="#30c08a" opacity=".55"/>
+    </g>
+    <g id="pylon" fill="none" stroke="#0a4a35" stroke-width="2.4" stroke-linecap="round">
+      <path d="M-16 78 L0 4 L16 78"/>
+      <path d="M-11 56 L11 56 M-7 36 L7 36 M-4 20 L4 20 M-16 78 L11 56 M16 78 L-11 56"/>
+      <path d="M-20 14 H20"/>
+    </g>
+  </defs>
+  <path d="M0 52 H640" stroke="#0a4a35" stroke-width="3"/>
+  <use href="#bld" x="14" y="36"/>
+  <use href="#bld" x="196" y="36"/>
+  <use href="#bld" x="268" y="36"/>
+  <use href="#bld" x="500" y="36"/>
+  <use href="#bld" x="568" y="36"/>
+  <use href="#pylon" x="130" y="0"/>
+  <use href="#pylon" x="440" y="0"/>
+  <rect x="0" y="78" width="640" height="22" fill="url(#mesh)"/>
+  <path d="M0 78.5 H640" stroke="#0a5a3e" stroke-width="2.4"/>
+</svg>

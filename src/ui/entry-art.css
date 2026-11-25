@@ -1,0 +1,1474 @@
+/* =====================================================================================================================
+   Entry-page artwork — kept exactly as designed: TypeDrive's car-made-of-letters wordmark (RacingWordmark.tsx), the race strip
+   (RaceScene.tsx) and the Funny Pose stage / Tech Trivia arena (GameStages.tsx). The rules below are the pictures' own; the page around
+   them (layout, panels, colours of the UI) is src/ui/entry.css. Every motion here is listed in the reduced-motion block at the end.
+   ===================================================================================================================== */
+
+/* ---------------------------------------------------------------------------------------------- the two games' art colours */
+.lp-g-pose {
+  --g: #ff5fa8;
+  --g-rgb: 255, 95, 168;
+  --g2: #ffd04a;
+  --g2-rgb: 255, 208, 74;
+}
+.lp-g-trivia {
+  --g: #4aa3ff;
+  --g-rgb: 74, 163, 255;
+  --g2: #35e6d8;
+  --g2-rgb: 53, 230, 216;
+}
+
+/* ---------------------------------------------------------------------------------------------- TypeDrive's car-inspired racing wordmark
+   Custom motorsport vector typography ("TYPE FAST. DRIVE FASTER.") sculpted directly into the silhouette of a right-facing GT supercar:
+   fast racing entry -> staggered letter assembly -> subtle aerodynamic speed trails & short acceleration surge -> crisp, clean emblem. */
+.lp-h1.lp-car-wm {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 830px;
+  margin: 0;
+  line-height: 1;
+  font-size: 16px;
+}
+.rwm {
+  position: relative;
+  display: block;
+  width: 100%;
+  isolation: isolate;
+  user-select: none;
+  filter: drop-shadow(0 12px 26px rgba(4, 7, 30, 0.72));
+  animation: rwm-accel 0.6s cubic-bezier(0.22, 0.9, 0.3, 1) 0.8s both;
+}
+.rwm-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+/* 1. High-speed racing entry of the car silhouette */
+.rwm-car {
+  transform-origin: 50% 60%;
+  animation: rwm-enter 0.8s cubic-bezier(0.14, 0.88, 0.22, 1) both;
+}
+@keyframes rwm-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(-230px, 0, 0) skewX(-12deg);
+    filter: blur(5px);
+  }
+  50% {
+    opacity: 1;
+    filter: blur(1.2px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+/* Short forward acceleration surge once all letters lock into the car body, settling completely clean */
+@keyframes rwm-accel {
+  0% {
+    transform: none;
+  }
+  42% {
+    transform: translate3d(9px, 0, 0) skewX(-2.2deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* 2. Staggered assembly of each custom motorsport letter into the unified chassis */
+.rwm-chassis,
+.rwm-fenders {
+  animation: rwm-chassis-in 0.56s cubic-bezier(0.16, 0.9, 0.25, 1) 0.04s backwards;
+}
+@keyframes rwm-chassis-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(-44px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rwm-glyph-top {
+  animation: rwm-lock-top 0.46s cubic-bezier(0.16, 1, 0.3, 1) calc(0.08s + var(--gi, 0) * 0.028s) backwards;
+}
+.rwm-glyph-bot {
+  animation: rwm-lock-bot 0.48s cubic-bezier(0.16, 1, 0.3, 1) calc(0.1s + var(--gi, 0) * 0.024s) backwards;
+}
+@keyframes rwm-lock-top {
+  0% {
+    opacity: 0;
+    transform: translate3d(-38px, -11px, 0);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rwm-lock-bot {
+  0% {
+    opacity: 0;
+    transform: translate3d(-48px, 10px, 0);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Alloy racing wheels: they spin up as the car arrives (two turns, speeding up), then keep turning at speed. The car itself never leaves
+   its mark — the wheels, the burn and the air streaking past are what say it is driving. */
+.rwm-spokes {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation:
+    rwm-wheel-rev 1s cubic-bezier(0.55, 0.085, 0.68, 0.53) 0.04s backwards,
+    rwm-wheel-cruise 0.3s linear 1.04s infinite;
+}
+@keyframes rwm-wheel-rev {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(720deg);
+  }
+}
+@keyframes rwm-wheel-cruise {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Specular light-sweep across the metallic silver & fiery-orange letter faces during acceleration */
+.rwm-sheen {
+  animation: rwm-sheen-pass 0.95s cubic-bezier(0.25, 0.8, 0.25, 1) 0.8s both;
+}
+@keyframes rwm-sheen-pass {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.95;
+  }
+  82% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(1500px);
+    opacity: 0;
+  }
+}
+
+/* 2b. The wheels' motion blur, the pitch of the car as the boosters fire, and the landing.
+   Everything that repeats shares one 6.4 s cycle that starts at 2.2 s, when the arrival is over: the burn surges, the nose squats,
+   the wheels blur a little more. */
+.rwm-motion {
+  opacity: 0.3;
+  animation:
+    rwm-motion-in 1s ease-in 0.04s backwards,
+    rwm-motion-surge 6.4s ease-in-out 2.2s infinite;
+}
+@keyframes rwm-motion-in {
+  0% {
+    opacity: 0;
+  }
+}
+@keyframes rwm-motion-surge {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  10%,
+  22% {
+    opacity: 0.5;
+  }
+  34% {
+    opacity: 0.3;
+  }
+}
+.rwm-pitch {
+  transform-origin: 212px 236px;
+  animation:
+    rwm-pitch 1.7s cubic-bezier(0.3, 0.7, 0.25, 1) 0.3s backwards,
+    rwm-surge 6.4s ease-in-out 2.2s infinite;
+}
+/* while the car drives: the nose lifts a little as the burn surges, then it rides level with a faint rock */
+@keyframes rwm-surge {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  8% {
+    transform: rotate(-0.1deg);
+  }
+  14% {
+    transform: rotate(-0.55deg);
+  }
+  26% {
+    transform: rotate(-0.35deg);
+  }
+  38% {
+    transform: rotate(0.15deg);
+  }
+  52% {
+    transform: rotate(-0.08deg);
+  }
+  70% {
+    transform: rotate(0.1deg);
+  }
+  85% {
+    transform: rotate(-0.04deg);
+  }
+}
+/* the nose lifts as the burn builds, drops a hair past level, then rests */
+@keyframes rwm-pitch {
+  0% {
+    transform: rotate(0deg);
+  }
+  24% {
+    transform: rotate(-0.75deg);
+  }
+  58% {
+    transform: rotate(0.3deg);
+  }
+  80% {
+    transform: rotate(-0.1deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+/* the body rides on its suspension: one bounce as the car plants, then a small, uneven ride over the road while it drives */
+.rwm-bob {
+  animation:
+    rwm-land 0.7s ease-out 0.86s backwards,
+    rwm-ride 1.9s ease-in-out 1.56s infinite;
+}
+@keyframes rwm-land {
+  0% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(2.4px);
+  }
+  62% {
+    transform: translateY(-0.9px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes rwm-ride {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  18% {
+    transform: translateY(-1.4px);
+  }
+  36% {
+    transform: translateY(0.8px);
+  }
+  58% {
+    transform: translateY(-1px);
+  }
+  78% {
+    transform: translateY(0.5px);
+  }
+}
+
+/* 2c. The twin boosters burn all the time. They light with the arrival, then run at a strong, flickering cruise and surge every 6.4 s
+   (the burn stretches, the glow swells), with sparks and a soft puff of exhaust streaming back from each nozzle. */
+.rwm-plume {
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+  transform: scale(0.95, 0.95);
+  animation:
+    rwm-ignite 1.86s cubic-bezier(0.2, 0.7, 0.25, 1) 0.34s backwards,
+    rwm-burn 6.4s ease-in-out 2.2s infinite;
+}
+@keyframes rwm-ignite {
+  0% {
+    transform: scale(0, 0.2);
+    opacity: 0;
+  }
+  10% {
+    transform: scale(1.42, 1.16);
+    opacity: 1;
+  }
+  52% {
+    transform: scale(1.15, 1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95, 0.95);
+    opacity: 1;
+  }
+}
+@keyframes rwm-burn {
+  0%,
+  100% {
+    transform: scale(0.95, 0.95);
+  }
+  4% {
+    transform: scale(1, 0.97);
+  }
+  10% {
+    transform: scale(1.42, 1.16);
+  }
+  22% {
+    transform: scale(1.34, 1.12);
+  }
+  34% {
+    transform: scale(0.98, 0.96);
+  }
+}
+/* two flames that never flicker in step: the blue-white core quickly, the orange skin a little slower */
+.rwm-flick,
+.rwm-lick {
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+}
+.rwm-flick {
+  animation: rwm-flick 0.14s ease-in-out 0.9s infinite alternate;
+}
+.rwm-lick {
+  animation: rwm-lick 0.23s ease-in-out 0.9s infinite alternate;
+}
+@keyframes rwm-flick {
+  from {
+    transform: scale(0.86, 0.9);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.14, 1.1);
+    opacity: 1;
+  }
+}
+@keyframes rwm-lick {
+  from {
+    transform: scale(0.95, 0.94);
+  }
+  to {
+    transform: scale(1.05, 1.06);
+  }
+}
+.rwm-glow {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  opacity: 0.75;
+  animation:
+    rwm-glow 1.86s ease-out 0.34s backwards,
+    rwm-glow-surge 6.4s ease-in-out 2.2s infinite;
+}
+@keyframes rwm-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+  55% {
+    opacity: 0.95;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+}
+@keyframes rwm-glow-surge {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  10%,
+  22% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+  34% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+}
+.rwm-spark {
+  opacity: 0;
+  animation: rwm-spark 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) calc(0.5s + var(--k, 0) * 0.09s) infinite;
+}
+@keyframes rwm-spark {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  16% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, -50px), var(--dy, 0px));
+  }
+}
+.rwm-puff {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: rwm-puff 1.5s ease-out calc(0.6s + var(--k, 0) * 0.42s) infinite;
+}
+@keyframes rwm-puff {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  18% {
+    opacity: 0.26;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, -60px), var(--dy, 0px)) scale(2.4);
+  }
+}
+
+/* 2c'. The air streaking past behind the car: thin lines that slide away to the left, one after another */
+.rwm-streak {
+  opacity: 0;
+  animation: rwm-streak 0.8s linear infinite;
+}
+@keyframes rwm-streak {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  15% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-170px);
+  }
+}
+
+/* 2d. The lamps: the headlight comes on as the car arrives, the tail-lamp flares once as it settles */
+.rwm-hl-glow {
+  opacity: 0.75;
+  animation: rwm-hl 0.9s ease-out 0.5s backwards;
+}
+@keyframes rwm-hl {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.75;
+  }
+}
+.rwm-tail-glow {
+  opacity: 0.5;
+  animation: rwm-brake 1.2s ease-out 0.9s backwards;
+}
+@keyframes rwm-brake {
+  0% {
+    opacity: 0.15;
+  }
+  28% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+/* on a phone the car still drives, but the lightest parts of it do the work: no exhaust puffs, no soft shadow behind the whole mark */
+@media (max-width: 640px) {
+  .rwm-puff {
+    display: none;
+  }
+  .rwm {
+    filter: none;
+  }
+}
+
+/* 3. Subtle horizontal wind-tunnel speed trails during entry & acceleration; fade to 0 so final logo stays crisp */
+.rwm-trails {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: visible;
+}
+.rwm-trails i {
+  position: absolute;
+  height: 2px;
+  border-radius: 2px;
+  opacity: 0;
+  transform-origin: 100% 50%;
+  animation: rwm-trail-pass 0.88s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+.rwm-trails .rwm-t1 {
+  top: 15%;
+  left: -8%;
+  width: 44%;
+  background: linear-gradient(90deg, transparent, rgba(165, 208, 255, 0.9) 62%, rgba(255, 255, 255, 0.95));
+  animation-delay: 0.3s;
+}
+.rwm-trails .rwm-t2 {
+  top: 45%;
+  left: -10%;
+  width: 62%;
+  height: 2.4px;
+  background: linear-gradient(90deg, transparent, rgba(45, 126, 255, 0.92) 58%, rgba(210, 234, 255, 0.95));
+  animation-delay: 0.5s;
+}
+.rwm-trails .rwm-t3 {
+  top: 72%;
+  left: -9%;
+  width: 56%;
+  height: 2.2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 132, 34, 0.92) 58%, rgba(255, 224, 140, 0.95));
+  animation-delay: 0.58s;
+}
+.rwm-trails .rwm-t4 {
+  top: 88%;
+  left: -6%;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, rgba(255, 108, 24, 0.8) 65%, transparent);
+  animation-delay: 0.38s;
+}
+@keyframes rwm-trail-pass {
+  0% {
+    opacity: 0;
+    transform: translateX(-36px) scaleX(0.35);
+  }
+  28% {
+    opacity: 0.92;
+    transform: translateX(0) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(64px) scaleX(0.2);
+  }
+}
+
+
+/* ---------------------------------------------------------------------------------------------- race strip
+   One wide shot of the track in a cut-corner frame. Contained: nothing here moves outside the frame. */
+.lp-scene {
+  position: relative;
+  container-type: inline-size;
+}
+.sc {
+  --lh: clamp(22px, 3.3vh, 38px); /* lane pitch: the strip grows with the window height */
+  --cw: clamp(62px, min(11cqw, calc(var(--lh) * 4.1)), 140px); /* car width at the nearest lane's base size */
+  --sky: clamp(42px, 6.4vh, 74px);
+  --wall: clamp(18px, 2.8vh, 32px);
+  --kt: 5px;
+  --kb: 8px;
+  --th: clamp(28px, 3.4vh, 42px);
+  --fx: 87cqw; /* the finish line */
+  position: relative;
+  display: grid;
+  grid-template-rows: var(--sky) var(--wall) var(--kt) auto var(--kb) var(--th);
+  overflow: hidden;
+  isolation: isolate;
+  background: #06061a;
+  border-radius: 14px;
+}
+/* edge vignette: pulls the eye to the middle of the track */
+.sc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: radial-gradient(130% 160% at 50% 55%, transparent 58%, rgba(3, 3, 16, 0.5) 100%);
+}
+@media (max-width: 767px) {
+  .sc::after {
+    background: linear-gradient(90deg, rgba(3, 3, 16, 0.45), transparent 14%, transparent 86%, rgba(3, 3, 16, 0.45));
+  }
+}
+
+/* sky + skyline + floodlights */
+.sc-sky {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0a0a2c 0%, #1a1146 52%, #3b1c5c 84%, #7a3552 100%);
+}
+.sc-skyline {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 200%;
+  height: 78%;
+  background: linear-gradient(180deg, #2c1b5c, #1a1146);
+  -webkit-mask: url(/scenery.svg) 0 100% / calc(100% / 8) 100% repeat-x;
+  mask: url(/scenery.svg) 0 100% / calc(100% / 8) 100% repeat-x;
+  opacity: 0.85;
+  animation: sc-pan 160s linear infinite;
+}
+@keyframes sc-pan {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.sc-lamp {
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  height: 92%;
+  margin-left: -1px;
+  background: linear-gradient(180deg, #3a3a7c, #14143a);
+}
+.sc-lamp::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 22px;
+  height: 7px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: linear-gradient(90deg, #fff4d6 0 4px, transparent 4px 6px, #fff4d6 6px 10px, transparent 10px 12px, #fff4d6 12px 16px, transparent 16px 18px, #fff4d6 18px 22px);
+  box-shadow: 0 0 14px 3px rgba(255, 220, 150, 0.7), 0 0 36px 10px rgba(255, 190, 110, 0.28);
+}
+
+/* finish gantry */
+.sc-gate {
+  position: absolute;
+  z-index: 2;
+  left: var(--fx);
+  top: 5px;
+  height: calc(var(--sky) + var(--wall) + var(--kt) - 5px);
+  width: 66px;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  align-content: start;
+}
+.sc-gate::before,
+.sc-gate::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #55579c, #1a1b48);
+}
+.sc-gate::before {
+  left: 8px;
+}
+.sc-gate::after {
+  right: 8px;
+}
+.sc-gate b {
+  position: relative;
+  z-index: 1;
+  padding: 3px 9px 8px;
+  border: 1px solid rgba(255, 168, 80, 0.8);
+  border-radius: 2px;
+  /* a one-row chequered trim along the bottom edge of the sign */
+  background:
+    repeating-conic-gradient(#fff 0 25%, #0b0b25 0 50%) 0 100% / 8px 8px repeat-x,
+    #0b0b25;
+  background-size: 8px 4px, auto;
+  font: 800 italic 9px/1 var(--font-display);
+  letter-spacing: 0.22em;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255, 150, 60, 0.35);
+}
+
+/* trackside sponsor boards: three alternating dark panels, GANTEC / TYPE FAST / DRIVE FASTER, repeating */
+.sc-wall {
+  --bw: 150px;
+  position: relative;
+  overflow: hidden;
+  background: #070a1c;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sc-boards {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  animation: sc-boards 22s linear infinite;
+}
+@keyframes sc-boards {
+  to {
+    transform: translateX(calc(var(--bw) * -3));
+  }
+}
+.sc-boards span {
+  --ac: #ff8a24;
+  flex: none;
+  width: var(--bw);
+  display: grid;
+  place-items: center;
+  border-right: 2px solid #04061a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 var(--ac);
+  font: 800 italic 9.5px/1 var(--font-display);
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  padding-bottom: 2px;
+}
+.sc-boards span:nth-child(3n + 1) {
+  background: linear-gradient(180deg, #181b3e, #0c0e26);
+  color: #ff9a3d;
+}
+.sc-boards span:nth-child(3n + 2) {
+  --ac: #8b5cf6;
+  background: linear-gradient(180deg, #23195e, #130d3a);
+  color: #fff;
+}
+.sc-boards span:nth-child(3n) {
+  background: linear-gradient(180deg, #14173a, #0a0c22);
+  color: #ffd45a;
+}
+
+/* kerbs: the far one is thin and slow, the near one thick and quick (a cheap parallax cue) */
+.sc-kerb {
+  position: relative;
+  overflow: hidden;
+}
+.sc-kerb i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(100% + 40px);
+  background: repeating-linear-gradient(90deg, #eceefa 0 10px, #e8352f 10px 20px);
+  animation: sc-kerb-t 0.36s linear infinite;
+}
+.sc-kerb-b i {
+  background: repeating-linear-gradient(90deg, #f4f5ff 0 14px, #e8352f 14px 28px);
+  animation: sc-kerb-b 0.29s linear infinite;
+}
+@keyframes sc-kerb-t {
+  to {
+    transform: translateX(-20px);
+  }
+}
+@keyframes sc-kerb-b {
+  to {
+    transform: translateX(-28px);
+  }
+}
+
+/* asphalt: five lanes. Cars overflow the road upwards (they stand in front of the wall), so only the markings clip. */
+.sc-road {
+  position: relative;
+  height: calc(var(--lh) * 5 + 10px);
+}
+.sc-ground {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, #11122c 0%, #1a1b3b 45%, #272850 100%);
+}
+.sc-pool {
+  position: absolute;
+  left: var(--px);
+  top: -30%;
+  width: 30cqw;
+  height: 150%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 28%, rgba(255, 226, 170, 0.17), transparent 66%);
+}
+.sc-pool.hot {
+  width: 22cqw;
+  background: radial-gradient(ellipse at 50% 28%, rgba(255, 236, 200, 0.3), transparent 66%);
+}
+/* lane dividers: nearer ones are thicker, with longer dashes, and scroll faster */
+.sc-div {
+  --per: calc(30px + var(--k) * 8px);
+  position: absolute;
+  left: 0;
+  width: calc(100% + var(--per));
+  top: calc(var(--lh) * var(--k) + 5px - 1.5px);
+  height: calc(1.5px + var(--k) * 0.5px);
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 calc(var(--per) * 0.55), transparent calc(var(--per) * 0.55) var(--per));
+  animation: sc-slide calc(0.234s + var(--k) * 0.036s) linear infinite;
+}
+@keyframes sc-slide {
+  to {
+    transform: translateX(calc(var(--per) * -1));
+  }
+}
+.sc-finish {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--fx);
+  width: 20px;
+  transform: translateX(-50%);
+  background: repeating-conic-gradient(#f7f8ff 0 25%, #0b0b22 0 50%) 0 0 / 10px 10px;
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.28);
+}
+
+/* cars */
+.sc-car {
+  position: absolute;
+  z-index: var(--i);
+  left: var(--x);
+  bottom: calc(var(--lh) * (4.5 - var(--i)) + 5px);
+  animation: sc-drift var(--d, 8s) ease-in-out infinite alternate;
+}
+@keyframes sc-drift {
+  to {
+    transform: translate3d(calc(var(--dx) * 1cqw), 0, 0);
+  }
+}
+.sc-rig {
+  --s: calc(0.84 + 0.06 * var(--i)); /* depth: the far lane is smaller */
+  position: relative;
+  width: calc(var(--cw) * var(--s));
+}
+.sc-veh {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.sc-shadow {
+  position: absolute;
+  left: 3%;
+  right: 0;
+  bottom: -2%;
+  height: 11%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.6), transparent 70%);
+}
+/* speed trail behind, and a short light cone ahead */
+.sc-trail {
+  position: absolute;
+  right: 97%;
+  bottom: 22%;
+  width: 82%;
+  height: 22%;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 176, 80, 0.75)) 0 50% / 100% 20% no-repeat,
+    linear-gradient(90deg, transparent, rgba(255, 150, 60, 0.4)) 0 10% / 74% 12% no-repeat,
+    linear-gradient(90deg, transparent, rgba(255, 150, 60, 0.4)) 0 92% / 62% 12% no-repeat;
+  transform-origin: 100% 50%;
+  animation: sc-trail 1s ease-in-out infinite alternate;
+}
+@keyframes sc-trail {
+  from {
+    transform: scaleX(0.7);
+    opacity: 0.6;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+.sc-beam {
+  position: absolute;
+  left: 94%;
+  bottom: 28%;
+  width: 58%;
+  height: 26%;
+  background: linear-gradient(90deg, rgba(255, 238, 190, 0.42), transparent);
+  clip-path: polygon(0 42%, 100% 0, 100% 100%, 0 62%);
+}
+.sc-you {
+  position: absolute;
+  left: 52%;
+  bottom: 100%;
+  transform: translateX(-50%) skewX(-10deg);
+  margin-bottom: 3px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #ffb347, #ff7a1a);
+  color: #1c0b02;
+  font: 900 8.5px/1.2 var(--font-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(255, 122, 26, 0.45);
+}
+
+/* HUD badges */
+.sc-hud {
+  position: absolute;
+  z-index: 7;
+  top: 11px;
+  left: 14px;
+  display: flex;
+  gap: 8px;
+}
+.sc-pill {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 5px 11px 5px 10px;
+  border-left: 3px solid var(--or);
+  border-radius: 2px;
+  background: rgba(5, 5, 22, 0.8);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 6px 16px rgba(0, 0, 0, 0.35);
+  transform: skewX(-10deg);
+}
+.sc-pill > * {
+  display: block;
+  transform: skewX(10deg);
+}
+.sc-pill em {
+  font: 700 9px/1 var(--font-mono);
+  font-style: normal;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+}
+.sc-pill b {
+  font: 800 17px/1 var(--font-mono);
+  color: #fff;
+}
+.sc-pos {
+  border-left-color: var(--gold);
+}
+.sc-pos b {
+  color: var(--gold);
+  text-transform: uppercase;
+}
+.sc-wpm {
+  height: 17px;
+  overflow: hidden;
+}
+.sc-wpm-list {
+  display: block;
+  animation: sc-wpm 16s steps(6) infinite;
+}
+.sc-wpm-list b {
+  display: block;
+  height: 17px;
+}
+@keyframes sc-wpm {
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+/* typing strip */
+.sc-type {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  overflow: hidden;
+  background: #04041a;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font: 500 12.5px/1 var(--font-mono);
+  white-space: nowrap;
+}
+.sc-line {
+  color: #4b4f88;
+}
+.sc-done {
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  width: 0;
+  overflow: hidden;
+  color: #fff;
+  border-right: 2px solid #35e6d8;
+  animation: sc-typing 16s steps(46) infinite;
+}
+@keyframes sc-typing {
+  to {
+    width: 72ch;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------------------------- the stage under both columns */
+.gl-wrap {
+  width: 100%;
+}
+.gl-stage {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: clamp(250px, 38vh, 420px);
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px rgba(var(--g-rgb), 0.4), 0 28px 60px -30px #000;
+}
+.gl-pose-stage {
+  background:
+    radial-gradient(60% 80% at 50% 0, rgba(var(--g-rgb), 0.28), transparent 70%),
+    linear-gradient(180deg, #170a2e 0%, #0d0620 70%, #070315 100%);
+}
+.gl-curtain {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  width: 11%;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, #a8135f 0 18px, #ff4f9a 18px 38px, #8c0f4c 38px 56px);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+}
+.gl-curtain-l {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 70% 50%, 100% 100%, 0 100%);
+}
+.gl-curtain-r {
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 30% 50%);
+}
+.gl-marquee {
+  position: absolute;
+  z-index: 4;
+  top: 10px;
+  left: 12%;
+  right: 12%;
+  display: flex;
+  justify-content: space-between;
+}
+.gl-marquee i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff3b0;
+  box-shadow: 0 0 8px #ffd04a;
+  animation: gl-bulb 1.6s steps(1) infinite;
+  animation-delay: calc(var(--i) * 0.1s);
+}
+@keyframes gl-bulb {
+  50% {
+    opacity: 0.35;
+  }
+}
+.gl-cast {
+  position: absolute;
+  z-index: 2;
+  inset: 0 11% 11% 11%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-actor {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 22%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  animation: gl-enter 0.8s cubic-bezier(0.16, 0.9, 0.2, 1) backwards;
+  animation-delay: calc(0.5s + var(--i) * 0.12s);
+}
+@keyframes gl-enter {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+.gl-beam {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 0;
+  bottom: 6%;
+  width: 150%;
+  translate: -50% 0;
+  pointer-events: none;
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(var(--c-rgb), 0.5), rgba(var(--c-rgb), 0.05) 85%, transparent);
+  animation: gl-beam 5s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * -1.1s);
+}
+@keyframes gl-beam {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.gl-fig {
+  --pf-body: #f6f1ff;
+  height: 72%;
+  width: auto;
+  aspect-ratio: 240 / 300;
+  filter: drop-shadow(0 0 14px rgba(var(--c-rgb), 0.55)) drop-shadow(0 8px 8px rgba(0, 0, 0, 0.5));
+  transform-origin: 50% 100%;
+  transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  animation: gl-bob 2.8s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * -0.7s);
+}
+.gl-actor.star .gl-fig {
+  height: 80%;
+}
+@keyframes gl-bob {
+  from {
+    rotate: -1.4deg;
+    translate: 0 0;
+  }
+  to {
+    rotate: 1.4deg;
+    translate: 0 -6px;
+  }
+}
+.gl-actor:hover .gl-fig {
+  transform: translateY(-14px) scale(1.07);
+}
+.gl-pool {
+  position: absolute;
+  bottom: 22px;
+  width: 92%;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(var(--c-rgb), 0.7), transparent 70%);
+  z-index: -1;
+}
+.gl-plate {
+  margin-top: 10px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: rgba(8, 6, 28, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(var(--c-rgb), 0.55), inset 0 -2px 0 var(--c);
+  font: 800 10px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.gl-actor:hover .gl-plate {
+  transform: translateY(-3px);
+  box-shadow: inset 0 0 0 1px var(--c), inset 0 -2px 0 var(--c), 0 0 16px rgba(var(--c-rgb), 0.5);
+}
+.gl-boards {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14%;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0 2px, transparent 2px 64px),
+    linear-gradient(180deg, #2a0e4a, #12061f);
+  border-top: 2px solid rgba(var(--g-rgb), 0.8);
+  box-shadow: 0 -8px 30px rgba(var(--g-rgb), 0.3);
+}
+.gl-confetti {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.gl-confetti i {
+  position: absolute;
+  top: -10px;
+  left: calc(8% + var(--i) * 5.6%);
+  width: 6px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--k, #ffd04a);
+  opacity: 0;
+  animation: gl-confetti 7s linear infinite;
+  animation-delay: calc(var(--i) * -0.9s);
+}
+.gl-confetti i:nth-child(3n) {
+  --k: #ff5fa8;
+}
+.gl-confetti i:nth-child(3n + 1) {
+  --k: #35e6d8;
+}
+@keyframes gl-confetti {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+  8% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(380px) rotate(520deg);
+  }
+}
+
+/* the arena */
+.gl-arena-stage {
+  background: #060b2c;
+}
+.gl-arena {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.gl-q {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: gl-q-in 1s cubic-bezier(0.16, 0.9, 0.2, 1) 0.3s backwards, gl-q-float 4.4s ease-in-out 1.4s infinite alternate;
+  filter: drop-shadow(0 0 22px rgba(74, 163, 255, 0.7));
+}
+@keyframes gl-q-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6) translateY(40px);
+  }
+}
+@keyframes gl-q-float {
+  to {
+    transform: translateY(-8px);
+  }
+}
+.gl-ico {
+  animation: gl-ico-in 0.8s cubic-bezier(0.16, 0.9, 0.2, 1) backwards, gl-ico-float 5s ease-in-out infinite alternate;
+  animation-delay: calc(0.6s + var(--i) * 0.12s), calc(1.4s + var(--i) * -0.9s);
+}
+@keyframes gl-ico-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+@keyframes gl-ico-float {
+  to {
+    transform: translateY(-9px);
+  }
+}
+.gl-ring-a,
+.gl-ring-b {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: gl-ring 5s ease-in-out infinite alternate;
+}
+.gl-ring-b {
+  animation-delay: -2.5s;
+}
+@keyframes gl-ring {
+  from {
+    transform: scale(0.96);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1.04);
+    opacity: 0.85;
+  }
+}
+.gl-traces {
+  animation: gl-trace 1.4s linear infinite;
+}
+@keyframes gl-trace {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+.gl-beam-a,
+.gl-beam-b {
+  animation: gl-beam 6s ease-in-out infinite alternate;
+}
+.gl-beam-b {
+  animation-delay: -3s;
+}
+.gl-panel {
+  animation: gl-ico-in 0.7s cubic-bezier(0.16, 0.9, 0.2, 1) backwards;
+  animation-delay: calc(0.9s + var(--i) * 0.1s);
+  transition: transform 0.25s;
+}
+.gl-panel:hover {
+  transform: translateY(-4px);
+}
+.gl-hot {
+  animation: gl-ico-in 0.7s cubic-bezier(0.16, 0.9, 0.2, 1) 1.3s backwards, gl-hot 2.2s ease-in-out 2s infinite alternate;
+}
+@keyframes gl-hot {
+  from {
+    filter: drop-shadow(0 0 0 rgba(46, 232, 107, 0));
+  }
+  to {
+    filter: drop-shadow(0 0 8px rgba(46, 232, 107, 0.8));
+  }
+}
+.gl-motes circle {
+  animation: gl-mote 6s linear infinite;
+  animation-delay: calc(var(--i) * -0.33s);
+  opacity: 0;
+}
+@keyframes gl-mote {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120px);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- phones */
+@media (max-width: 879px) {
+  .gl-stage {
+    height: clamp(220px, 36vh, 340px);
+  }
+}
+@media (max-width: 640px) {
+  /* a phone shows only the middle of the arena, so the topics regroup inside it (CSS transforms win over the drawn positions) */
+  .gl-t-python {
+    transform: translate(372px, 96px);
+  }
+  .gl-t-sql {
+    transform: translate(372px, 214px);
+  }
+  .gl-t-ai {
+    transform: translate(728px, 96px);
+  }
+  .gl-t-cloud {
+    transform: translate(728px, 214px);
+  }
+  .gl-t-git,
+  .gl-traces {
+    display: none;
+  }
+  .gl-curtain {
+    width: 7%;
+  }
+  .gl-cast {
+    inset: 0 7% 11% 7%;
+  }
+  .gl-actor:nth-child(1),
+  .gl-actor:nth-child(5) {
+    display: none;
+  }
+  .gl-actor {
+    max-width: 33%;
+  }
+  .gl-plate {
+    font-size: 8.5px;
+    padding: 4px 6px;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.15;
+    letter-spacing: 0.08em;
+  }
+  .gl-marquee {
+    left: 8%;
+    right: 8%;
+  }
+  .gl-marquee i:nth-child(even) {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- landing race strip: phones */
+@media (max-width: 767px) {
+  .sc {
+    --cw: clamp(58px, 17cqw, 90px);
+  }
+}
+@media (max-width: 560px) {
+  .sc {
+    --lh: 21px;
+    --sky: 34px;
+    --wall: 16px;
+    --th: 28px;
+  }
+  .sc-lamp:first-of-type {
+    display: none;
+  }
+  .sc-trail {
+    animation: none;
+  }
+  .sc-car.extra {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .rwm,
+  .rwm-car,
+  .rwm-chassis,
+  .rwm-fenders,
+  .rwm-glyph-top,
+  .rwm-glyph-bot,
+  .rwm-spokes,
+  .rwm-sheen,
+  .rwm-trails i,
+  .rwm-pitch,
+  .rwm-bob,
+  .rwm-plume,
+  .rwm-flick,
+  .rwm-lick,
+  .rwm-glow,
+  .rwm-spark,
+  .rwm-puff,
+  .rwm-streak,
+  .rwm-hl-glow,
+  .rwm-tail-glow,
+  .rwm-motion,
+  .sc *,
+  .sc *::before,
+  .sc *::after,
+  .gl-marquee i,
+  .gl-actor,
+  .gl-beam,
+  .gl-fig,
+  .gl-confetti i,
+  .gl-q,
+  .gl-ico,
+  .gl-ring-a,
+  .gl-ring-b,
+  .gl-traces,
+  .gl-beam-a,
+  .gl-beam-b,
+  .gl-panel,
+  .gl-hot,
+  .gl-motes circle {
+    animation: none !important;
+  }
+  .rwm-trails i,
+  .rwm-sheen,
+  .rwm-spark,
+  .rwm-puff,
+  .rwm-streak,
+  .rwm-motion {
+    opacity: 0 !important;
+  }
+  .sc-done {
+    width: 14ch;
+  }
+  .sc-car {
+    transform: none;
+  }
+  .gl-confetti,
+  .gl-motes {
+    display: none;
+  }
+}

@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.*
+*.log
+.vite
+# the admin login (a password hash) — never committed or baked into an image; cloud hosts use ADMIN_USERNAME / ADMIN_PASSWORD
+admin.json

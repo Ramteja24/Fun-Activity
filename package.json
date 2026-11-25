@@ -1,0 +1,45 @@
+{
+  "name": "typedrive-gantec-connect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-time multiplayer typing race for Gantec Weekly Connect",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c blue,magenta \"tsx watch server/index.ts\" \"vite\"",
+    "build": "vite build && esbuild server/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs",
+    "start": "node dist/server.mjs",
+    "bots": "tsx scripts/bots.ts",
+    "sfx": "tsx scripts/make-countdown-sfx.ts",
+    "logo": "tsx scripts/make-gantec-logo.ts",
+    "admin": "tsx scripts/set-admin.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "node --import tsx --test --test-timeout=120000 --test-force-exit test/*.test.ts"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/outfit": "^5.3.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^10.0.6",
+    "esbuild": "^0.28.2",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "zustand": "^5.0.16"
+  }
+}
