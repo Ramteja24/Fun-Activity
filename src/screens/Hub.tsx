@@ -39,8 +39,8 @@ export function HubScreen() {
           <PlatformTitle />
           <p className="ph-lead">
             {isHost
-              ? 'Four games, one leaderboard. Share the room code, then take everyone through each game — you run it and watch; you do not play.'
-              : 'Four games, one leaderboard. The host takes the room into each game — your screen follows automatically.'}
+              ? 'Three games, one leaderboard. Share the room code, then take everyone through each game — you run it and watch; you do not play.'
+              : 'Three games, one leaderboard. The host takes the room into each game — your screen follows automatically.'}
           </p>
           {isHost && (
             <p className="ph-next">
@@ -67,7 +67,7 @@ export function HubScreen() {
 
       <section className="ph-board card rise" aria-labelledby="ph-overall-title">
         <h2 id="ph-overall-title" className="section-title">
-          Overall leaderboard <span>every game</span>
+          Overall scoreboard <span>all games added up</span>
         </h2>
         <Overall />
       </section>
@@ -148,37 +148,48 @@ export function HubScreen() {
   );
 }
 
-/** The overall leaderboard: placement points per team, with each activity's place and raw points beside it. */
+/** The one overall scoreboard: each team's running total of every game's points, with what each game added. */
 function Overall() {
   const room = useGame((s) => s.room)!;
   const rows = [...room.overall].sort((a, b) => a.rank - b.rank || TEAMS.findIndex((t) => t.id === a.id) - TEAMS.findIndex((t) => t.id === b.id));
-  const anyScored = rows.some((r) => r.placement > 0);
+  const anyScored = rows.some((r) => r.points > 0);
+  const played = ACTIVITIES.filter((a) => room.activities.find((x) => x.id === a.id)!.status !== 'pending');
   return (
     <div className="ph-overall">
       <ol className="ph-rows">
-        {rows.map((r) => (
-          <li key={r.id} className={`ph-row tm-${r.id}${anyScored && r.rank === 1 ? ' first' : ''}`}>
-            <span className="ph-rank">{anyScored ? (r.tied ? `T${r.rank}` : r.rank) : '–'}</span>
-            <div className="ph-row-main">
-              <h3 className="ph-row-name">
-                <i className="tm-dot" aria-hidden />
-                {r.name}
-              </h3>
-            </div>
-            <span className="ph-total">
-              {r.placement}
-              <small>placement pts</small>
-            </span>
-          </li>
-        ))}
+        {rows.map((r) => {
+          const parts = played.map((a) => `${SHORT_NAME[a.id]} ${r.byActivity[a.id]}`).join(' · ');
+          return (
+            <li key={r.id} className={`ph-row tm-${r.id}${anyScored && r.rank === 1 ? ' first' : ''}`}>
+              <span className="ph-rank">{anyScored ? (r.tied ? `T${r.rank}` : r.rank) : '–'}</span>
+              <div className="ph-row-main">
+                <h3 className="ph-row-name">
+                  <i className="tm-dot" aria-hidden />
+                  {r.name}
+                </h3>
+                {parts && (
+                  <p className="ph-row-parts" title={parts}>
+                    {parts}
+                  </p>
+                )}
+              </div>
+              <span className="ph-total">
+                {r.points}
+                <small>pts</small>
+              </span>
+            </li>
+          );
+        })}
       </ol>
       <p className="ph-foot">
-        Placements in every activity that has scored: <b>1st 3 · 2nd 2 · 3rd 1</b> (equal scores share a place, marked * on the cards); a team that scored nothing in a game gets nothing for it. Each game's own points stay on its card.
-        {rows.some((r) => r.tied && r.rank === 1) && anyScored ? ' Level on placements and first places: shown as a tie, never decided at random.' : ''}
+        One scoreboard for the whole session: every game's team points are added to these totals as you play. Cards and Trivia give <b>+10</b> a round; a race gives <b>10 · 8 · 6 · 4 · 2</b> to the first five finishers and <b>1</b> to everyone else who finishes.
+        {rows.some((r) => r.tied && r.rank === 1) && anyScored ? ' Level on points: shown as a tie, never decided at random.' : ''}
       </p>
     </div>
   );
 }
+
+const SHORT_NAME: Record<ActivityId, string> = { typedrive: 'Race', pose: 'Pose', cards: 'Cards', trivia: 'Trivia' };
 
 /** The room code, copy buttons and a QR code for phones. */
 function Invite({ code, online, capacity, host }: { code: string; online: number; capacity: number; host?: string }) {

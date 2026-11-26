@@ -128,7 +128,7 @@ describe('the hero and HOW IT WORKS', () => {
   const welcome = read('src/screens/Welcome.tsx');
 
   test('the first screen reads top to bottom: branding, a centred headline, the steps, then the four cards — every word still there', () => {
-    for (const text of ['Four live team games', 'Four games, one leaderboard. Pick a game to host a room — you run each game and everyone’s screen follows.']) assert.ok(welcome.includes(text), text);
+    for (const text of ['Three live team games', 'Three games, one leaderboard. Pick a game to host a room — you run each game and everyone’s screen follows.']) assert.ok(welcome.includes(text), text);
     const order = ['<SiteHeader', 'className="ph-hero ph-hero-c', 'ph-how-card', '<ol className="ph-games">'].map((part) => welcome.indexOf(part));
     assert.ok(order.every((at) => at > 0) && order.every((at, i) => i === 0 || at > order[i - 1]!), `order: ${order}`);
     assert.match(css, /\.ph-hero-c \{[^}]*text-align: center;/s);
@@ -156,7 +156,7 @@ describe('the game cards', () => {
       assert.ok(kick > 0, f);
       assert.ok(kick < src.indexOf('<h3 className="ph-game-name">'), `${f}: above the name`);
     }
-    assert.deepEqual(ACTIVITIES.map((a) => a.id), ['typedrive', 'pose', 'cards', 'trivia'], 'the play order');
+    assert.deepEqual(ACTIVITIES.map((a) => a.id), ['typedrive', 'cards', 'trivia'], 'the play order (Funny Pose is hidden)');
   });
 
   test('a flat light card: white surface, a hairline border, a soft shadow; the launch button is a solid button in the game’s colour', () => {

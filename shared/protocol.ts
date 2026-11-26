@@ -204,6 +204,8 @@ export interface TriviaInfo {
   total: number;
   /** 0-based index of the question in play. */
   index: number;
+  /** The furthest question opened so far (an `index` below it is an earlier question the host stepped back to). */
+  latest: number;
   question: TriviaQuestionInfo;
   limitMs: number;
   /** Server-clock time the question closes. */
@@ -256,6 +258,9 @@ export interface CardsInfo {
   swaps?: [number, number][];
   startsAt?: number;
   swapMs: number;
+  /** While picking: the server-clock end of the pick timer (the answer is revealed then), and its length. */
+  pickEndsAt?: number;
+  pickMs: number;
   /** Players who can pick (on a team, here) and how many have picked (not what). */
   eligible: number;
   picked: number;
@@ -338,7 +343,7 @@ export type ClientMsg =
   /** A participant picks the card the joker is under in round `round` (1-based); `card` is a position. One pick per round, final. */
   | { t: 'cardpick'; round: number; card: number }
   /** Host only: run Tech Trivia (`start` the quiz, `reveal` the answer now, go to the `next` question). */
-  | { t: 'trivia'; op: 'start' | 'reveal' | 'next' | 'reset' }
+  | { t: 'trivia'; op: 'start' | 'reveal' | 'next' | 'prev' | 'reset' }
   /** A participant answers the Tech Trivia question in play (`q` = its index). One answer per question, final. */
   | { t: 'answer'; q: number; choice: number }
   | { t: 'kick'; id: string }
@@ -349,7 +354,7 @@ export type PoseOp = PoseCommand['op'];
 /** The pose operations that take no argument (`team` carries one). */
 export const POSE_PLAIN_OPS: readonly PoseOp[] = ['start', 'begin', 'respin', 'reveal', 'done', 'notdone', 'next', 'reset'];
 export type TriviaOp = Extract<ClientMsg, { t: 'trivia' }>['op'];
-export const TRIVIA_OPS: readonly TriviaOp[] = ['start', 'reveal', 'next', 'reset'];
+export const TRIVIA_OPS: readonly TriviaOp[] = ['start', 'reveal', 'next', 'prev', 'reset'];
 export type CardsOp = Extract<ClientMsg, { t: 'cards' }>['op'];
 export const CARDS_OPS: readonly CardsOp[] = ['start', 'show', 'reveal', 'next', 'reset'];
 

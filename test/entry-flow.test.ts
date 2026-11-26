@@ -17,9 +17,9 @@ describe('creating a room in the game that was opened on the dashboard', () => {
   test('the create message carries an optional, validated activity', () => {
     assert.deepEqual(parseClientMsg('{"t":"create","name":"Hosty"}'), { t: 'create', name: 'Hosty' });
     assert.deepEqual(parseClientMsg('{"t":"create","name":"Hosty","activity":"typedrive"}'), { t: 'create', name: 'Hosty', activity: 'typedrive' });
-    assert.deepEqual(parseClientMsg('{"t":"create","name":"Hosty","activity":"pose"}'), { t: 'create', name: 'Hosty', activity: 'pose' });
+    assert.deepEqual(parseClientMsg('{"t":"create","name":"Hosty","activity":"cards"}'), { t: 'create', name: 'Hosty', activity: 'cards' });
     assert.deepEqual(parseClientMsg('{"t":"create","name":"Hosty","activity":"trivia"}'), { t: 'create', name: 'Hosty', activity: 'trivia' });
-    for (const bad of ['"chess"', '3', 'null', '{}', '["pose"]']) {
+    for (const bad of ['"chess"', '"pose"', '3', 'null', '{}', '["pose"]']) {
       assert.deepEqual(parseClientMsg(`{"t":"create","name":"Hosty","activity":${bad}}`), { t: 'create', name: 'Hosty' }, `ignored: ${bad}`);
     }
   });
@@ -55,7 +55,8 @@ describe('creating a room in the game that was opened on the dashboard', () => {
       await td.waitFor((m) => m.t === 'room' && (m.room.phase === 'countdown' || m.room.phase === 'racing'));
       assert.equal(td.room.race !== null, true);
 
-      assert.equal((await open('E', 'pose')).room.activity, 'pose');
+      assert.equal((await open('E', 'cards')).room.activity, 'cards');
+      assert.equal((await open('P', 'pose')).room.activity, 'hub', 'the hidden Funny Pose Challenge does not open');
       assert.equal((await open('T', 'trivia')).room.activity, 'trivia');
       assert.equal((await open('H')).room.activity, 'hub', 'no choice → the in-room dashboard, as before');
       assert.equal((await open('X', 'chess')).room.activity, 'hub', 'nonsense is ignored');
@@ -78,8 +79,8 @@ describe('the first screen', () => {
     assert.match(store, /entry: openedWithInviteLink\(\) \? 'typedrive' : null/, 'the app starts on the dashboard (entry = null)');
   });
 
-  test('the dashboard lists the four games in order, each with an "Open …" button that opens that game’s name / host / join page', () => {
-    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Funny Pose Challenge', 'Playing Cards', 'Tech Trivia']);
+  test('the dashboard lists the three games in order, each with an "Open …" button that opens that game’s name / host / join page', () => {
+    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Playing Cards', 'Tech Trivia']);
     assert.match(welcome, /ACTIVITIES\.map\(\(a, i\) =>/);
     assert.match(welcome, /onClick=\{\(\) => setEntry\(a\.id\)\}/);
     assert.match(welcome, /isAdmin \? `Open \$\{a\.name\}` : 'Join a room'/);

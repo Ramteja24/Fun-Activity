@@ -12,7 +12,7 @@
 //
 // Which pose a round uses is dealt when the session starts — 8 of the 24, spread over the categories, skipping poses used in earlier
 // sessions until the bank would run short — and stays hidden until the host reveals it.
-import { POSE_PERFORM_MS, POSE_POINTS, POSE_ROUNDS, POSE_SPIN_MS } from '../../shared/activities';
+import { POSE_PERFORM_MS, POSE_POINTS, POSE_ROUNDS, POSE_SPIN_MS, poseTeamFull } from '../../shared/activities';
 import type { Named, PoseInfo, PoseRound, PoseStage } from '../../shared/protocol';
 import { POSE_BANK, type PoseChallenge } from '../../shared/poses';
 import { isTeamId, zeroPoints, type TeamId } from '../../shared/teams';
@@ -100,6 +100,11 @@ export class PoseSession {
   selectTeam(team: unknown): boolean {
     if ((this.stage !== 'pick' && this.stage !== 'selected') || !isTeamId(team)) return false;
     if (this.stage === 'selected' && team === this.team) return false;
+    // every team gets the same number of rounds
+    const turns = zeroPoints();
+    for (const r of this.history) turns[r.team] += 1;
+    const eligible = this.env.eligible();
+    if (poseTeamFull(team, turns, (t) => eligible.filter((e) => e.team === t).length)) return false;
     this.skipped.clear();
     return this.spin(team);
   }

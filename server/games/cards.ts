@@ -8,7 +8,7 @@
 //
 // The swap list is sent to every screen when the shuffle starts — the screens need it to animate the same shuffle — so a client
 // could work out where the joker ends up. That is the game itself (following the card), not a leak worth hiding.
-import { CARDS_PER_ROUND, CARDS_POINTS, CARDS_PREVIEW_MS, CARDS_ROUNDS, CARDS_SHUFFLE_LEAD_MS, CARDS_SWAP_MS, CARDS_SWAPS } from '../../shared/activities';
+import { CARDS_PER_ROUND, CARDS_PICK_MS, CARDS_POINTS, CARDS_PREVIEW_MS, CARDS_ROUNDS, CARDS_SHUFFLE_LEAD_MS, CARDS_SWAP_MS, CARDS_SWAPS } from '../../shared/activities';
 import { finalPosition } from '../../shared/cards';
 import type { CardsInfo, CardsReveal, CardsStage } from '../../shared/protocol';
 import { TEAM_IDS, zeroPoints, type TeamId } from '../../shared/teams';
@@ -60,6 +60,7 @@ export class CardsSession {
   private swaps: Swap[] = [];
   private previewEndsAt = 0;
   private startsAt = 0;
+  private pickEndsAt = 0;
   private picks = new Map<string, Pick>();
   private reveal: CardsReveal | undefined;
   private readonly history: { round: number; gained: Record<TeamId, number> }[] = [];
@@ -89,6 +90,7 @@ export class CardsSession {
     this.reveal = undefined;
     this.previewEndsAt = 0;
     this.startsAt = 0;
+    this.pickEndsAt = 0;
   }
 
   /** Host: turn the cards face up so everyone sees the joker; the shuffle follows by itself. */
@@ -111,6 +113,11 @@ export class CardsSession {
   private openPicks(): void {
     if (this.stage !== 'shuffle') return;
     this.stage = 'pick';
+    this.pickEndsAt = this.env.clock() + CARDS_PICK_MS;
+    // time's up: the cards turn over by themselves (the host can reveal sooner)
+    this.later(CARDS_PICK_MS, () => {
+      if (this.revealNow()) this.env.changed();
+    });
     this.env.changed();
   }
 
@@ -127,6 +134,7 @@ export class CardsSession {
   /** Host: turn every card over and score the round — once. */
   revealNow(): boolean {
     if (this.stage !== 'pick') return false;
+    this.clear();
     const joker = finalPosition(this.start, this.swaps);
     const picks = Array.from({ length: this.cards }, () => 0);
     let first: { id: string; at: number } | null = null;
@@ -179,6 +187,8 @@ export class CardsSession {
       ...(shown ? { start: this.start, previewEndsAt: this.previewEndsAt } : {}),
       ...(shuffled ? { swaps: this.swaps.map(([a, b]) => [a, b] as Swap), startsAt: this.startsAt } : {}),
       swapMs: this.swapMs,
+      ...(this.stage === 'pick' ? { pickEndsAt: this.pickEndsAt } : {}),
+      pickMs: CARDS_PICK_MS,
       eligible: here.size,
       picked: this.picks.size,
       ...(this.reveal ? { reveal: this.reveal } : {}),

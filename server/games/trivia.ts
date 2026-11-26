@@ -1,11 +1,18 @@
 // Tech Trivia. Five multiple-choice questions, one at a time; every participant answers on their own screen; the server times
-// the question, scores it and shows the right answer. The host (an organiser, not a player) starts the quiz and moves it on.
+// the question and scores it. The host (an organiser, not a player) starts the quiz, reveals each answer and moves it on — back
+// to an earlier question too, to show it again (an earlier question is shown as it was revealed; it is never re-scored).
+//
+// Nothing about the answer shows until the HOST reveals it: not when everyone has answered, not when the clock runs out (that
+// only stops new answers). Players just lock in a choice; at the reveal everyone sees the right answer and how they did.
 //
 // Scoring, decided here and recorded once per question: only the FIRST correct answer counts — the earliest on the server's clock
 // (answers are kept in the order they arrived, so equal timestamps go to whoever arrived first). That player's team gets
 // TRIVIA_POINTS; everyone else, and every team when nobody got it right, gets 0.
 // The right answer never leaves the server until the question is revealed.
 import { TRIVIA_LIMIT_MS, TRIVIA_POINTS, TRIVIA_QUESTIONS } from '../../shared/activities';
+
+/** An answer tapped just as the clock hits zero still counts if it reaches the server this soon after (network delay). */
+export const TRIVIA_GRACE_MS = 750;
 import type { TriviaInfo, TriviaReveal, TriviaStage, TriviaTop } from '../../shared/protocol';
 import { TEAM_IDS, zeroPoints, type TeamId } from '../../shared/teams';
 import { TRIVIA_BANK, type TriviaItem } from '../data/trivia-bank';
@@ -28,6 +35,7 @@ export interface TriviaEnv {
 
 /** `n` questions from `n` different categories, never one used before (the used list resets when the bank would run short). */
 export function pickQuestions(n: number, used: Set<string>, rand: Rand, bank: readonly TriviaItem[] = TRIVIA_BANK): TriviaItem[] {
+  if (bank.length <= n) return shuffle([...bank], rand); // a bank of just the quiz's questions: ask them all
   const categoriesWithFresh = () => new Set(bank.filter((q) => !used.has(q.id)).map((q) => q.category)).size;
   if (categoriesWithFresh() < n) used.clear();
   const byCategory = new Map<string, TriviaItem[]>();
@@ -54,6 +62,10 @@ export class TriviaSession {
   private answers = new Map<string, Answer>();
   private eligible = new Map<string, Eligible>();
   private reveal: TriviaReveal | undefined;
+  /** Every revealed question's result, kept so the host can step back and show it again. */
+  private readonly reveals = new Map<number, TriviaReveal>();
+  /** The furthest question opened so far. */
+  private latest = 0;
   private readonly questions: TriviaItem[];
   private readonly history: { index: number; gained: Record<TeamId, number> }[] = [];
   private readonly totals = new Map<string, TriviaTop>();
@@ -85,26 +97,28 @@ export class TriviaSession {
     this.eligible = new Map(this.env.eligible().map((e) => [e.id, e]));
     this.reveal = undefined;
     this.endsAt = this.env.clock() + TRIVIA_LIMIT_MS;
+    this.latest = Math.max(this.latest, this.index);
     this.clear();
-    this.timer = setTimeout(() => void this.revealNow(), TRIVIA_LIMIT_MS);
+    // time's up: answers close (everyone's screen shows it), but the answer stays hidden until the host reveals it
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      if (this.stage === 'question') this.env.changed();
+    }, TRIVIA_LIMIT_MS + TRIVIA_GRACE_MS);
     this.timer.unref?.();
   }
 
-  /** A participant's answer: one per question, final, only from someone who was in the room when it opened. */
+  /** A participant's answer: one per question, final, only from someone who was in the room when it opened, and only in time. */
   answer(playerId: string, q: number, choice: number): boolean {
     if (this.stage !== 'question' || q !== this.index) return false;
+    if (this.env.clock() > this.endsAt + TRIVIA_GRACE_MS) return false;
     if (!Number.isInteger(choice) || choice < 0 || choice >= this.q.options.length) return false;
     if (!this.eligible.has(playerId) || this.answers.has(playerId)) return false;
     this.answers.set(playerId, { choice, at: this.env.clock() });
-    if (this.answers.size >= this.eligible.size) {
-      this.revealNow(); // everyone has answered: no need to wait out the clock
-    } else {
-      this.env.answered();
-    }
+    this.env.answered();
     return true;
   }
 
-  /** Close the question (the clock ran out, everyone answered, or the host pressed Reveal): score it — once — and show the answer. */
+  /** Host: close the question and show the answer — score it, once. Only the host does this; nothing reveals by itself. */
   revealNow(): boolean {
     if (this.stage !== 'question') return false;
     this.clear();
@@ -139,23 +153,52 @@ export class TriviaSession {
       picks,
       ...(winner ? { first: { id: winner.id, name: winner.name, team: winner.team } } : {}),
     };
+    this.reveals.set(this.index, this.reveal);
     this.history.push({ index: this.index, gained });
     this.stage = 'reveal';
     this.env.changed();
     return true;
   }
 
-  /** Host: the next question — or, after the last, the end of the quiz. */
+  /**
+   * Host: the next question — one already played is shown again as it was revealed; a new one opens for answers. After the last,
+   * the end of the quiz.
+   */
   next(): boolean {
     if (this.stage !== 'reveal') return false;
     if (this.index + 1 >= this.total) {
       this.stage = 'over';
     } else {
       this.index += 1;
-      this.open();
+      this.showOrOpen();
     }
     this.env.changed();
     return true;
+  }
+
+  /** Host: back to the previous question (or, from the final leaderboard, the last one), shown as it was revealed. */
+  prev(): boolean {
+    if (this.stage === 'over') {
+      this.index = this.total - 1;
+    } else {
+      // a question still taking answers must be revealed first, so it is scored before anyone moves away from it
+      if (this.stage !== 'reveal' || this.index === 0) return false;
+      this.index -= 1;
+    }
+    this.showOrOpen();
+    this.env.changed();
+    return true;
+  }
+
+  private showOrOpen(): void {
+    const done = this.reveals.get(this.index);
+    if (done) {
+      this.clear();
+      this.reveal = done;
+      this.stage = 'reveal';
+    } else {
+      this.open();
+    }
   }
 
   get over(): boolean {
@@ -184,6 +227,7 @@ export class TriviaSession {
       stage: this.stage,
       total: this.total,
       index: this.index,
+      latest: this.latest,
       question: { text: q.text, options: [...q.options], category: q.category },
       limitMs: TRIVIA_LIMIT_MS,
       endsAt: this.endsAt,

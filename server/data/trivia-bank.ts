@@ -1,216 +1,213 @@
-// The Tech Trivia question bank. A quiz uses 5 of these; the rest stay for the next session.
-// Server-side on purpose: the right answer is only sent to the browsers when the question is revealed.
-
-export type TriviaCategory = 'Python' | 'AI' | 'SQL' | 'Git' | 'Cloud' | 'Software';
+export type TriviaCategory =
+  | 'Python'
+  | 'AI'
+  | 'SQL'
+  | 'Git'
+  | 'Cloud'
+  | 'Software';
 
 export interface TriviaItem {
   id: string;
   category: TriviaCategory;
   text: string;
-  /** Always four options. */
   options: readonly [string, string, string, string];
-  /** Index (0–3) of the right option. */
   correct: 0 | 1 | 2 | 3;
   explanation: string;
 }
 
+export interface CodingItem {
+  id: string;
+  category: 'Python';
+  difficulty: 'Medium';
+  text: string;
+  exampleInput: string;
+  exampleOutput: string;
+  starterCode: string;
+  solution: string;
+  explanation: string;
+  timeLimit: number;
+}
+
+// ==========================================
+// PYTHON CODING CHALLENGES
+// Server-side only
+// ==========================================
+
+export const CODING_BANK: readonly CodingItem[] = [
+  {
+    id: 'py-longest-substring',
+    category: 'Python',
+    difficulty: 'Medium',
+    text: 'Find the length of the longest substring without repeating characters. Try to solve it in O(n) time.',
+    exampleInput: '"abcabcbb"',
+    exampleOutput: '3',
+    starterCode: 'def longest_substring(s):\n    pass',
+    solution: `def longest_substring(s):
+    seen, left, best = {}, 0, 0
+    for right, ch in enumerate(s):
+        left = max(left, seen.get(ch, -1) + 1)
+        seen[ch] = right
+        best = max(best, right - left + 1)
+    return best`,
+    explanation: 'Use a sliding window and track the last position of each character.',
+    timeLimit: 90,
+  },
+  {
+    id: 'py-group-anagrams',
+    category: 'Python',
+    difficulty: 'Medium',
+    text: 'Group words that are anagrams of each other. The order of the groups does not matter.',
+    exampleInput: '["eat", "tea", "tan", "ate", "nat", "bat"]',
+    exampleOutput: '[["eat", "tea", "ate"], ["tan", "nat"], ["bat"]]',
+    starterCode: 'def group_anagrams(words):\n    pass',
+    solution: `def group_anagrams(words):
+    groups = {}
+    for word in words:
+        key = "".join(sorted(word))
+        groups.setdefault(key, []).append(word)
+    return list(groups.values())`,
+    explanation: 'Anagrams share the same sorted character sequence, which can be used as a dictionary key.',
+    timeLimit: 90,
+  },
+  {
+    id: 'py-product-except-self',
+    category: 'Python',
+    difficulty: 'Medium',
+    text: 'Return an array where each element is the product of all other elements. Do not use division. Solve in O(n) time.',
+    exampleInput: '[1, 2, 3, 4]',
+    exampleOutput: '[24, 12, 8, 6]',
+    starterCode: 'def product_except_self(nums):\n    pass',
+    solution: `def product_except_self(nums):
+    result, left, right = [1] * len(nums), 1, 1
+    for i in range(len(nums)):
+        result[i] *= left; left *= nums[i]
+        j = len(nums) - 1 - i
+        result[j] *= right; right *= nums[j]
+    return result`,
+    explanation: 'Combine prefix and suffix products without using division.',
+    timeLimit: 120,
+  },
+  {
+    id: 'py-merge-intervals',
+    category: 'Python',
+    difficulty: 'Medium',
+    text: 'Merge all overlapping intervals and return the resulting non-overlapping intervals.',
+    exampleInput: '[[1,3], [2,6], [8,10], [9,12]]',
+    exampleOutput: '[[1,6], [8,12]]',
+    starterCode: 'def merge_intervals(intervals):\n    pass',
+    solution: `def merge_intervals(intervals):
+    result = []
+    for start, end in sorted(intervals):
+        if result and start <= result[-1][1]:
+            result[-1][1] = max(result[-1][1], end)
+        else: result.append([start, end])
+    return result`,
+    explanation: 'Sort intervals by starting position and merge whenever the current interval overlaps the previous one.',
+    timeLimit: 90,
+  },
+];
+
+// ==========================================
+// ADVANCED TECHNICAL MCQs
+// ==========================================
+
 export const TRIVIA_BANK: readonly TriviaItem[] = [
-  // Python
+
+  // PYTHON — the question, a blank line, then the code (shown as a code block with its line breaks)
+
   {
-    id: 'py-immutable',
+    id: 'py-finally-return',
     category: 'Python',
-    text: 'Which of these Python data types is immutable?',
-    options: ['list', 'dict', 'tuple', 'set'],
+    text: `What does this print?
+
+def check():
+    try:
+        return 'try'
+    finally:
+        return 'finally'
+print(check())`,
+    options: [
+      'try',
+      'finally',
+      'try, then finally',
+      'SyntaxError',
+    ],
+    correct: 1,
+    explanation: 'A finally block always runs, even after a return. A return inside finally replaces the value the try block was returning.',
+  },
+  {
+    id: 'py-generator-used-up',
+    category: 'Python',
+    text: `What does this print?
+
+squares = (n * n for n in range(4))
+total = sum(squares)
+count = len(list(squares))
+print(total, count)`,
+    options: [
+      '14 4',
+      '0 0',
+      '14 0',
+      'TypeError',
+    ],
     correct: 2,
-    explanation: 'A tuple cannot be changed after it is created; lists, dicts and sets can.',
+    explanation: 'The parentheses make a generator, which can only be read once. sum() uses it up (0 + 1 + 4 + 9 = 14), so list(squares) is empty and its length is 0.',
   },
+
+  // SQL — the question, a blank line, then the query
+
   {
-    id: 'py-yield',
-    category: 'Python',
-    text: 'What does the `yield` keyword do in a Python function?',
-    options: ['Ends the whole program', 'Makes it a generator that produces values one at a time', 'Imports a module', 'Raises an exception'],
-    correct: 1,
-    explanation: 'A function with `yield` returns a generator, which hands back one value per iteration.',
-  },
-  {
-    id: 'py-slice',
-    category: 'Python',
-    text: 'What does `print(len([1, 2, 3][1:]))` output?',
-    options: ['1', '2', '3', 'It raises an error'],
-    correct: 1,
-    explanation: '`[1, 2, 3][1:]` is `[2, 3]`, which has two elements.',
-  },
-  {
-    id: 'py-pip',
-    category: 'Python',
-    text: 'Which command installs a package from PyPI?',
-    options: ['python install requests', 'import requests', 'pypi get requests', 'pip install requests'],
+    id: 'sql-left-join-where',
+    category: 'SQL',
+    text: `customers: Ana (id 1), Ben (id 2), Cy (id 3). orders: Ana 150, Ana 50, Ben 80. How many rows does this query return?
+
+SELECT c.name, o.amount
+FROM customers c
+LEFT JOIN orders o
+  ON o.customer_id = c.id
+WHERE o.amount > 100;`,
+    options: [
+      '3',
+      '4',
+      '2',
+      '1',
+    ],
     correct: 3,
-    explanation: '`pip install <name>` downloads and installs a package from the Python Package Index.',
+    explanation: 'The WHERE clause runs after the join and drops every row whose amount is NULL or not over 100, so the LEFT JOIN behaves like an INNER JOIN. Only Ana 150 is left. Put the condition in the ON clause to keep every customer.',
   },
+  {
+    id: 'sql-rank-ties',
+    category: 'SQL',
+    text: `players: Ana 90, Ben 90, Cy 80, Dev 70. In this query, what is Cy's r?
+
+SELECT name, score,
+  RANK() OVER (ORDER BY score DESC) AS r
+FROM players
+ORDER BY r;`,
+    options: [
+      '3',
+      '2',
+      '1',
+      '4',
+    ],
+    correct: 0,
+    explanation: 'Ana and Ben tie on 90 and both get rank 1. RANK() then skips a number, so Cy is 3. DENSE_RANK() would give 2; ROW_NUMBER() would give 3 but break the tie arbitrarily.',
+  },
+
   // AI
+
   {
-    id: 'ai-llm',
+    id: 'ai-embedding-mismatch',
     category: 'AI',
-    text: 'What does LLM stand for in AI?',
-    options: ['Linear Logic Machine', 'Large Language Model', 'Low-Level Memory', 'Layered Learning Method'],
-    correct: 1,
-    explanation: 'An LLM is a Large Language Model, such as the models behind modern chat assistants.',
-  },
-  {
-    id: 'ai-overfit',
-    category: 'AI',
-    text: 'What is overfitting in machine learning?',
-    options: ['The model memorises its training data and does poorly on new data', 'The model is too small to learn anything', 'The model trains too quickly', 'The data has too many columns'],
-    correct: 0,
-    explanation: 'An overfit model matches the training data too closely, so it generalises badly.',
-  },
-  {
-    id: 'ai-rag',
-    category: 'AI',
-    text: 'In AI applications, what does RAG stand for?',
-    options: ['Rapid Answer Generation', 'Recursive Agent Graph', 'Retrieval-Augmented Generation', 'Randomised Attention Gate'],
+    text: 'A team upgrades to a newer embedding model for user queries but keeps the document vectors already stored in the vector database. Search results suddenly look random. What is the cause?',
+    options: [
+      'The vector database needs more replicas',
+      'The top-k value is too small',
+      'Queries and documents now come from different embedding models, so their vectors cannot be compared; the documents must be re-embedded',
+      'The LLM context window is too short',
+    ],
     correct: 2,
-    explanation: 'RAG retrieves relevant documents and gives them to the model so its answer is grounded in them.',
+    explanation: 'Each embedding model has its own vector space. Similarity between a vector from one model and a vector from another is meaningless, so the stored documents must be re-embedded with the new model.',
   },
-  {
-    id: 'ai-attention',
-    category: 'AI',
-    text: 'Which mechanism lets a Transformer weigh how relevant each token is to every other token?',
-    options: ['Convolution', 'Pooling', 'Dropout', 'Self-attention'],
-    correct: 3,
-    explanation: 'Self-attention scores every pair of tokens, which is the core idea of the Transformer.',
-  },
-  // SQL
-  {
-    id: 'sql-having',
-    category: 'SQL',
-    text: 'Which SQL clause filters groups after a GROUP BY?',
-    options: ['WHERE', 'ORDER BY', 'HAVING', 'LIMIT'],
-    correct: 2,
-    explanation: 'WHERE filters rows before grouping; HAVING filters the groups afterwards.',
-  },
-  {
-    id: 'sql-left-join',
-    category: 'SQL',
-    text: 'Which JOIN keeps every row of the left table, even when there is no match on the right?',
-    options: ['INNER JOIN', 'RIGHT JOIN', 'CROSS JOIN', 'LEFT JOIN'],
-    correct: 3,
-    explanation: 'A LEFT JOIN returns all left rows, with NULLs where the right side has no match.',
-  },
-  {
-    id: 'sql-pk',
-    category: 'SQL',
-    text: 'What does a PRIMARY KEY guarantee?',
-    options: ['Values are unique and never NULL', 'Values are sorted alphabetically', 'The column only holds text', 'The table has no other indexes'],
-    correct: 0,
-    explanation: 'A primary key identifies each row: it must be unique and cannot be NULL.',
-  },
-  {
-    id: 'sql-truncate',
-    category: 'SQL',
-    text: 'Which statement removes every row from a table but keeps the table itself?',
-    options: ['DROP TABLE', 'TRUNCATE TABLE', 'DELETE TABLE', 'REMOVE TABLE'],
-    correct: 1,
-    explanation: 'TRUNCATE TABLE empties the table; DROP TABLE would remove the table as well.',
-  },
-  // Git
-  {
-    id: 'git-checkout-b',
-    category: 'Git',
-    text: 'Which command creates a new branch and switches to it?',
-    options: ['git checkout -b feature', 'git branch -d feature', 'git merge feature', 'git clone feature'],
-    correct: 0,
-    explanation: '`git checkout -b <name>` (or `git switch -c <name>`) creates the branch and moves onto it.',
-  },
-  {
-    id: 'git-stash',
-    category: 'Git',
-    text: 'What does `git stash` do?',
-    options: ['Deletes the last commit', 'Uploads commits to the remote', 'Temporarily shelves your uncommitted changes', 'Shows the commit history'],
-    correct: 2,
-    explanation: 'It saves your uncommitted work on a stack so you can get a clean working tree and come back to it later.',
-  },
-  {
-    id: 'git-pull',
-    category: 'Git',
-    text: 'Which command downloads new commits from the remote and merges them into your current branch?',
-    options: ['git push', 'git pull', 'git commit', 'git init'],
-    correct: 1,
-    explanation: '`git pull` is a fetch followed by a merge (or a rebase, if configured).',
-  },
-  {
-    id: 'git-rebase',
-    category: 'Git',
-    text: 'What does `git rebase main` do when you run it on a feature branch?',
-    options: ['Deletes the main branch', 'Pushes your branch to main', 'Squashes the whole repository into one commit', 'Replays your branch’s commits on top of main'],
-    correct: 3,
-    explanation: 'Rebase takes your commits and re-applies them on the tip of main, giving a linear history.',
-  },
-  // Cloud
-  {
-    id: 'cloud-s3',
-    category: 'Cloud',
-    text: 'Which AWS service provides object storage?',
-    options: ['EC2', 'Lambda', 'S3', 'RDS'],
-    correct: 2,
-    explanation: 'Amazon S3 (Simple Storage Service) stores objects in buckets.',
-  },
-  {
-    id: 'cloud-iaas',
-    category: 'Cloud',
-    text: 'What does IaaS stand for?',
-    options: ['Internet as a Service', 'Infrastructure as a Service', 'Integration as a Service', 'Instance as a Server'],
-    correct: 1,
-    explanation: 'IaaS rents you infrastructure such as virtual machines, storage and networks.',
-  },
-  {
-    id: 'cloud-serverless',
-    category: 'Cloud',
-    text: 'What does “serverless” computing mean?',
-    options: ['You run code without managing servers; the provider scales it for you', 'There are no servers anywhere', 'Only desktop apps are used', 'The code runs offline'],
-    correct: 0,
-    explanation: 'Servers still exist, but the provider provisions, runs and scales them; you just supply code.',
-  },
-  {
-    id: 'cloud-container',
-    category: 'Cloud',
-    text: 'What is a container image?',
-    options: ['A screenshot of a server', 'A packaged, read-only template holding an app and its dependencies', 'A virtual monitor', 'A backup tape'],
-    correct: 1,
-    explanation: 'An image is the template a container is started from, so it runs the same everywhere.',
-  },
-  // general software development
-  {
-    id: 'dev-rest',
-    category: 'Software',
-    text: 'What does REST stand for?',
-    options: ['Remote Execution Standard Transfer', 'Rapid Event Streaming Technology', 'Relational Entity Sync Tool', 'Representational State Transfer'],
-    correct: 3,
-    explanation: 'REST is an architectural style for web APIs built around resources and HTTP verbs.',
-  },
-  {
-    id: 'dev-404',
-    category: 'Software',
-    text: 'Which HTTP status code means “Not Found”?',
-    options: ['200', '301', '404', '500'],
-    correct: 2,
-    explanation: '404 means the server could not find the requested resource.',
-  },
-  {
-    id: 'dev-cicd',
-    category: 'Software',
-    text: 'What does CI/CD stand for?',
-    options: ['Continuous Integration / Continuous Delivery', 'Code Inspection / Code Deployment', 'Cloud Infrastructure / Cloud Data', 'Compile Immediately / Compile Daily'],
-    correct: 0,
-    explanation: 'CI builds and tests every change automatically; CD delivers the tested change to users.',
-  },
-  {
-    id: 'dev-queue',
-    category: 'Software',
-    text: 'Which data structure works first-in, first-out?',
-    options: ['Stack', 'Queue', 'Tree', 'Hash map'],
-    correct: 1,
-    explanation: 'A queue serves items in the order they arrived, like a line at a counter.',
-  },
+
 ];

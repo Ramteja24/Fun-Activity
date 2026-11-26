@@ -67,7 +67,7 @@ Other scripts: `npm test` (299 tests) · `npm run sfx` (re-render the countdown 
    championship* across rounds; the host never earns any. **Leave** (or Exit Race in the standings) exits cleanly at any time,
    mid-race too.
 7. **Team points.** After every race each finisher earns points for their team from the server's final results:
-   **1st 100 · 2nd 75 · 3rd 50 · 4th 30 · 5th 20 · every other finisher 10 · anyone who does not finish 0**. A race's points are
+   **1st 10 · 2nd 8 · 3rd 6 · 4th 4 · 5th 2 · every other finisher 1 · anyone who does not finish 0**. A race's points are
    recorded exactly once, only for people who actually raced (never the host or a spectator), and the totals carry from race to
    race — going back to the lobby or racing again never resets them. The results page shows each team's rank, what the race added
    and its total. When you are done press **End match** (it asks first): everyone gets the match results — each team's total and
@@ -90,7 +90,11 @@ phone sleeps or Wi-Fi blips they are put back in the same seat automatically; th
 The host is always the admin (see "The admin and the players" above): if the admin leaves or drops, **host rights never pass
 to a driver** — the race that is running finishes normally, and the room waits until the admin is back.
 
-## 2b. The Weekly Fun Activity (four games in one room)
+## 2b. The Weekly Fun Activity (three games in one room)
+
+> **The Funny Pose Challenge is hidden for now.** The games on show are TypeDrive → Playing Cards → Tech Trivia. All of its code
+> is still here; to bring it back, uncomment its line in `ACTIVITIES` (`shared/activities.ts`) and un-skip its room tests in
+> `test/pose.test.ts`. Its description below is kept for that.
 
 The app now opens on the **Weekly Fun Activity dashboard**: four games, played in this order, with the same rooms, players
 and three teams. **Open TypeDrive** (or Funny Pose Challenge / Playing Cards / Tech Trivia) shows the name / **Host a room** / **Join a room** page — for
@@ -106,7 +110,7 @@ Tech Trivia is on.
 1. **TypeDrive** — exactly as described in §2. (It is opened from the dashboard; its screens, rules and scoring are unchanged.
    Host-only buttons were added to its lobby and match-results pages to get back to the dashboard / on to the Funny Pose Challenge.)
 2. **Funny Pose Challenge** (it replaced the earlier emoji-guessing game) — a performance game for the live Microsoft Teams call. The
-   host presses **Start the challenge**; each of the **8 rounds** is run by the host, who **chooses only the team** (the three teams
+   host presses **Start the challenge**; each of the **6 rounds** (**2 per team** — a team that has had its 2 can't be picked again) is run by the host, who **chooses only the team** (the three teams
    are shown with how many are here and how many rounds each has played). The moment a team is chosen a **spinner picks one of its
    players at random** — a reel of the team's names that spins on every screen (timed from the server's clock, so everyone sees the same
    spin) and stops on the server's pick, which is then highlighted (“Selected!"). **The host cannot choose the player** — but if the picked person is away, **Re-spin** picks someone else from the same team (never anyone already skipped that round, and it costs nobody a turn). Then **Start
@@ -126,26 +130,28 @@ Tech Trivia is on.
    all in `shared/poses.ts`, each drawn from joint angles by `src/portal/PoseDrawing.tsx`, so no image files are needed). A session
    deals 8 of them, spread over the categories, and the next session avoids those until the bank would run short. Which pose a round
    has is dealt by the server and sent to the screens only when the host reveals it.
-3. **Playing Cards** (find the joker) — **5 rounds**, each harder than the last (3, 4, 4, 5, 5 cards; 6 → 14 swaps; each swap
+3. **Playing Cards** (find the joker) — **10 rounds**, each harder than the last (3, 3, 4, 4, 4, 5, 5, 5, 5, 5 cards; 6 → 15 swaps; each swap
    420 → 240 ms). The host presses **Show the joker**: the cards turn face up for 2.2 s so everyone sees where the joker is, then they
    turn face down and **shuffle on every screen at once** — the server sends the swap list and the start time, and every screen
    animates the same swaps from the server's clock (transform only, so it stays smooth). Then everyone taps the card they think the
-   joker is under (one pick per round, final). The host presses **Reveal answer**: every card turns over. **The first correct pick
+   joker is under (one pick per round, final) within **10 seconds**; when the time is up — or sooner, if the host presses **Reveal answer** — every card turns over. **The first correct pick
    wins 10 points for that player's team** (earliest by the server's clock); every other pick scores 0, and nobody scores if nobody
    found it. Final screen: team podium and leaderboard. All in `server/games/cards.ts` and `src/screens/PlayingCards.tsx`.
 4. **Tech Trivia** — **5 questions** per quiz, each from a different topic (Python, AI, SQL, Git, Cloud, general software; bank of 24 in
-   `server/data/trivia-bank.ts`), one at a time with four options and a 20 s timer. Everyone answers on their own screen; an answer
+   `server/data/trivia-bank.ts`), one at a time with four options and a 15 s timer. Everyone answers on their own screen; an answer
    is final. **First correct answer wins 10 points for your team**: per question only the earliest correct answer (by the server's
-   clock) scores; every other answer, right or wrong, scores 0, and nobody scores if nobody gets it right. The question closes when
-   everyone has answered, the time is up or the host reveals it; only then does the server send the right answer (with an
-   explanation, how many picked each option, and who was first). Final screen: team leaderboard (a tie is a tie) and the top players
+   clock) scores; every other answer, right or wrong, scores 0, and nobody scores if nobody gets it right. When the time is up no
+   more answers are taken, but **nothing is revealed until the host presses Reveal answer** — not even when everyone has answered.
+   Only then does the server send the right answer (with an explanation, how many picked each option, and who was first) and
+   score the question. The host can go **Previous / Next** between questions: an earlier question is shown again as it was
+   revealed (marked "Replay · already scored") and never re-scored; a question still open must be revealed first. Final screen: team leaderboard (a tie is a tie) and the top players
    (by questions won).
 
-**Scores.** Each activity keeps its **own** team points (shown on its card on the dashboard). The **overall leaderboard** adds up
-**placements** — in every activity that has scored, 1st = 3, 2nd = 2, 3rd = 1 (equal scores share a place), and a team that scored
-**nothing** in an activity gets **nothing** for it — because the games score on very different scales (a race adds hundreds, a
-trivia question 10); teams level on placements are ordered by how many
-activities they lead, and if they are still level the dashboard shows a **tie** rather than picking someone. When all four are complete
+**Scores.** There is **one overall scoreboard** for the whole session: every game's team points are simply **added together**,
+game after game (the dashboard shows each team's total and what each game added; every game's end screen shows the same running
+totals with "+N this game"). All games score on the same scale — Funny Pose, Playing Cards and Tech Trivia give +10 per won round,
+and a race gives 10 / 8 / 6 / 4 / 2 to the first five finishers and 1 to every other finisher — so no game swamps the others.
+Teams on equal totals are shown as a **tie** rather than picking someone. When all four are complete
 the dashboard announces the overall winner (or tie). Replaying an activity replaces only that activity's score. Everything is
 computed and synchronised by the server (`shared/activities.ts` is the single definition of the order, the point values and the
 overall ranking); a client never decides a pick, an answer or a score.
@@ -339,7 +345,7 @@ server file changed for it, and the existing markup, class names and tests are k
   the 3-2-1, then 40 cars on one passage at 46–104 WPM (the race lasts about 40–90 s, like a real one); **Host** view is what you will
   see (all 40 cars on the road — see 2j — and the live standings), **Driver** view is the screen of the driver who
   finishes 20th (WPM gauge, typing bar, "OVERTAKEN" and position banners); when the last driver is home it moves on to *Results*:
-  the awards ceremony, the 40-row ranking and the three team cards, with team points by the real table (100 / 75 / 50 / 30 / 20, then 10).
+  the awards ceremony, the 40-row ranking and the three team cards, with team points by the real table (10 / 8 / 6 / 4 / 2, then 1).
 * **Made-up, and sealed off.** The names are the three teams' reference lists minus the host (the host spectates), the speeds come from
   a fixed seed (the demo is the same every time), and the scoring is the shared rules (`shared/game.ts`, `shared/teams.ts`) applied to
   those numbers (`src/demo/mock.ts`). While it is open the socket is muted (only the clock-sync ping goes out), the server's messages are
@@ -574,7 +580,7 @@ frame, team roster, score strip, pose drawing and timers, `portal.css` their sty
 | File | Covers |
 |---|---|
 | `pose.test.ts` (24) | **the Funny Pose Challenge**: the bank (24 different poses in five categories, every one the brief names present, each with its own drawn figure that stays inside the picture, 8 dealt per session across the categories with no repeats until the bank runs short), the message parser (no "choose a player" message exists), and in a room (virtual time): the host chooses only the team and the server picks the player from it, the spin lasts exactly the spin time and Start waits for it, the pick really is random (240 spins, all six players of a team come up, no fixed order), **fairness** (nobody twice before everyone, over several cycles and across sessions, a late joiner first, a spin the host abandons costs nobody their turn, no re-spin for the same team), never someone who dropped or left (40 seeds), the spinner running again if the pick leaves mid-spin or before the round starts (or back to choosing a team when nobody is left), participants cannot run anything, steps only in order, the pose absent from every payload until the reveal, 10 points once per round (0 for not completed), a whole 8-round session, identical spinner state on every screen, session replay with new poses, host leaving / taking over — and the whole round over real WebSockets |
-| `activities.test.ts` (23) | **the Weekly Fun Activity**: Tech Trivia's bank and question picking (server-only, never imported by client code), the speed bonus, the overall leaderboard (placements, ties, activities with no points), and in a room (virtual time): the dashboard as home, host-only navigation, TypeDrive untouched and not leavable mid-race, a whole Tech Trivia quiz (answer rules, per-team averages, team size not mattering, once-only scoring, no right answer in the payload, top players), scores for the three activities staying separate and adding up on the overall board, the payload size at 50 players — and Tech Trivia over real WebSockets |
+| `activities.test.ts` (23) | **the Weekly Fun Activity**: Tech Trivia's bank and question picking (server-only, never imported by client code), the speed bonus, the one overall scoreboard (every game's points summed, ties), and in a room (virtual time): the dashboard as home, host-only navigation, TypeDrive untouched and not leavable mid-race, a whole Tech Trivia quiz (answer rules, per-team averages, team size not mattering, once-only scoring, no right answer in the payload, top players), scores for the three activities staying separate and adding up on the overall board, the payload size at 50 players — and Tech Trivia over real WebSockets |
 | `portal-ui.test.ts` (23) | the new screens (source-level guards): routing order with TypeDrive's routes unchanged, the dashboard (three activities in order, host-only open, overall board, tie), the Funny Pose Challenge (team buttons only — no way to choose a player in the screen, store or protocol, host-only team buttons, the spinner timed from the server clock and stopping on the server's pick, nobody named or lit until it stops, Start waits for it, pose drawn only once its id arrives, every host step, SVG drawing, reduced motion, no trace of the old emoji game), Tech Trivia (answer is final, right answer drawn only after the reveal), the store messages, the accents |
 | `entry-flow.test.ts` (9) | the first screen and how a room starts: the create message's validated `activity`, real sockets — a room created from "Open TypeDrive" opens in TypeDrive's lobby with a spectating host, a joiner lands there with the team they picked, and the race starts from it; Funny Pose Challenge / Tech Trivia rooms open in their games, no or invalid choice → the in-room dashboard — plus source guards: the app starts on the dashboard, the original landing page and its wording are intact, leaving returns to the dashboard, invite links skip it |
 | `arcade.test.ts` (17) | **the arcade look** (guards and unit tests): every interface sound is short and quiet, muted/locked audio is silent, per-cue rate limit, spinner ticks climbing in pitch, only the fanfare ducks the music, no server/shared/engine code imports the sounds; the podium's 2nd–1st–3rd order and ties; `arcade.css` loaded last, no animation in the still environment, embers only on the two quiz-style stages, a reduced-motion rule for every animated class, key art on both dashboards, the start sequence still on the existing numbers/clock, speed lines driven by the HUD's WPM, podiums on every finale |
@@ -593,7 +599,7 @@ frame, team roster, score strip, pose drawing and timers, `portal.css` their sty
 | `client-server.test.ts` (8) | the **real client engine ↔ real server** on long passages with injected 80–160 ms latency, a severed connection while typing, a server that drops a burst of keys, a page refresh mid-race, a genuine DNF, the host leaving mid-race, a driver leaving mid-race, and the **host's real engine in spectator mode** (no car/WPM/position/banners, follows the five leaders) |
 | `server.test.ts` (18) | rooms/codes, name rules, host-only start/end, shared `goAt`, keystroke validation, rate limit & flood guard, reconnect by token and name, late joiners, host hand-over, kick, lobby pruning, malformed frames — all with a spectating host and drivers who race |
 | `host-spectator.test.ts` (15) | **the host never races** (real room logic, virtual time): not racing in any phase, never on the track / in the state / in the results / with trophies, their keystrokes change nothing, a race needs a driver, only the host starts/ends/resets, no seat and no car (capacity counts drivers), host leaving or dropping mid-race, the longest-present driver taking over (and watching from the next race), a demoted host coming back as a driver with a real car, every driver leaving, late joiners |
-| `teams.test.ts` (22) | **team play**: the three teams and member lists exactly as supplied, the points table (100/75/50/30/20/10/0), ranking and tie rules; in a room — a driver must pick a team (never assigned; reconnecting keeps it), live roster sync, scoring from the final results with the host/spectators/team-less drivers earning nothing, points recorded exactly once, totals persisting across races and the lobby, switching teams (between races only; earned points stay put), leaving/dropping keeps points, ending the match (host only, after a scored race) with a winner, a tie, a 0–0–0 three-way tie, a new match resetting to zero, a 50-driver payload size check — and a real-WebSocket match from join to winner |
+| `teams.test.ts` (22) | **team play**: the three teams and member lists exactly as supplied, the points table (10/8/6/4/2/1/0), ranking and tie rules; in a room — a driver must pick a team (never assigned; reconnecting keeps it), live roster sync, scoring from the final results with the host/spectators/team-less drivers earning nothing, points recorded exactly once, totals persisting across races and the lobby, switching teams (between races only; earned points stay put), leaving/dropping keeps points, ending the match (host only, after a scored race) with a winner, a tie, a 0–0–0 three-way tie, a new match resetting to zero, a 50-driver payload size check — and a real-WebSocket match from join to winner |
 | `teams-ui.test.ts` (13) | the team screens (source-level guards): the picker with no default and Join disabled until a team is chosen, name hint badge only, the three team sections and the lobby's live data, switching only between races, team standings and the confirmed End match on the results page, the match results screen (winner / tie / contributions, host-only new match), and that racing, countdown and audio know nothing about teams |
 | `host-ui.test.ts` (12) | the host's screens (source-level guards) — drivers get the race screen, the host the spectator screen with no typing field/speedometer/WPM/position; the lobby with no host panel and a driver-only roster; results headline and championship; the "you are the host now" notice — and the client engine's spectator mode (lanes = the five leaders with stable lanes, camera on the leader, zoom to keep every car in view, anchor clear of the standings panel) |
 | `engine.test.ts` (14) · `socket.test.ts` (4) · `game.test.ts` (11) | prediction/reconciliation/keystroke queue/lanes/banners · stale-connection detection · scoring, rules and passage length/charset |

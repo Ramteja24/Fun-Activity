@@ -52,10 +52,13 @@ export const zeroPoints = (): Record<TeamId, number> => ({ titans: 0, vibe: 0, c
 
 // ------------------------------------------------------------------------------------------------ scoring
 
-/** Points for the first five finishers, in order. */
-export const FINISH_POINTS: readonly number[] = [100, 75, 50, 30, 20];
+/**
+ * Points for the first five finishers, in order. Kept on the same scale as the other games (+10 per round), because every
+ * game's points add up on one overall scoreboard.
+ */
+export const FINISH_POINTS: readonly number[] = [10, 8, 6, 4, 2];
 /** Every other player who finishes. */
-export const OTHER_FINISHER_POINTS = 10;
+export const OTHER_FINISHER_POINTS = 1;
 
 /**
  * Team points one racer earns for one race. `rank` is their place among the finishers (1 = first across the line).

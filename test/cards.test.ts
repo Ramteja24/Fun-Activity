@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, test } from 'node:test';
-import { CARDS_PER_ROUND, CARDS_POINTS, CARDS_PREVIEW_MS, CARDS_ROUNDS, CARDS_SHUFFLE_LEAD_MS, CARDS_SWAP_MS, CARDS_SWAPS } from '../shared/activities';
+import { CARDS_PER_ROUND, CARDS_PICK_MS, CARDS_POINTS, CARDS_PREVIEW_MS, CARDS_ROUNDS, CARDS_SHUFFLE_LEAD_MS, CARDS_SWAP_MS, CARDS_SWAPS } from '../shared/activities';
 import { finalPosition } from '../shared/cards';
 import type { CardsInfo, RoomInfo } from '../shared/protocol';
 import { TEAM_IDS, zeroPoints } from '../shared/teams';
@@ -56,7 +56,7 @@ describe('the shuffle', () => {
   });
 
   test('it gets harder every round: more cards, more swaps, faster swaps', () => {
-    assert.equal(CARDS_ROUNDS, 5);
+    assert.equal(CARDS_ROUNDS, 10);
     for (const list of [CARDS_PER_ROUND, CARDS_SWAPS, CARDS_SWAP_MS]) assert.equal(list.length, CARDS_ROUNDS);
     for (let i = 1; i < CARDS_ROUNDS; i++) {
       assert.ok(CARDS_PER_ROUND[i]! >= CARDS_PER_ROUND[i - 1]!);
@@ -120,6 +120,35 @@ describe('a round in a room', () => {
     s.advance(CARDS_SHUFFLE_LEAD_MS + c.swaps!.length * c.swapMs + 20);
     assert.equal(cards(s).stage, 'pick');
     assert.equal(cards(s).eligible, 6);
+  });
+
+  test('players have 10 seconds to pick: the clock starts when the shuffle stops, and at zero the cards turn over by themselves', () => {
+    assert.equal(CARDS_PICK_MS, 10_000);
+    const s = room();
+    s.room.cardsCommand(host(s), 'start');
+    toPick(s);
+    const c = cards(s);
+    assert.equal(c.stage, 'pick');
+    assert.equal(c.pickMs, CARDS_PICK_MS);
+    assert.ok(c.pickEndsAt! > s.now() && c.pickEndsAt! <= s.now() + CARDS_PICK_MS, 'one server timestamp every screen counts down to');
+    const joker = finalPosition(c.start!, c.swaps!);
+    assert.ok(s.room.cardPick(s.get('B1').p, 1, joker));
+    s.advance(c.pickEndsAt! - s.now() - 10);
+    assert.equal(cards(s).stage, 'pick', 'still open just before the end');
+    s.advance(20);
+    const done = cards(s);
+    assert.equal(done.stage, 'reveal', 'time is up: revealed without the host');
+    assert.equal(done.pickEndsAt, undefined);
+    assert.equal(done.reveal!.first!.name, 'B1');
+    assert.deepEqual(done.reveal!.gained, { titans: 0, vibe: CARDS_POINTS, ctrl: 0 });
+    assert.equal(s.room.cardPick(s.get('A1').p, 1, joker), false, 'no picks after the time is up');
+    // the host revealing sooner stops the clock: it never reveals (or scores) a second time
+    assert.ok(s.room.cardsCommand(host(s), 'next'));
+    toPick(s);
+    assert.ok(s.room.cardsCommand(host(s), 'reveal'));
+    s.advance(CARDS_PICK_MS * 2);
+    assert.equal(cards(s).history.length, 2);
+    assert.equal(cards(s).stage, 'reveal');
   });
 
   test('only the FIRST correct pick scores: 10 points for that player’s team, nothing for anyone else', () => {
@@ -193,8 +222,8 @@ describe('a round in a room', () => {
     const act = info.activities.find((a) => a.id === 'cards')!;
     assert.equal(act.status, 'done');
     assert.deepEqual(act.points, done.scores);
-    const by = Object.fromEntries(info.overall.map((r) => [r.id, r.placement]));
-    assert.deepEqual([by.titans, by.vibe, by.ctrl], [3, 0, 0], '1st place for the Titans; nothing for teams that scored nothing');
+    const by = Object.fromEntries(info.overall.map((r) => [r.id, r.points]));
+    assert.deepEqual([by.titans, by.vibe, by.ctrl], [CARDS_ROUNDS * CARDS_POINTS, 0, 0], 'the points go straight onto the overall scoreboard');
     // a fresh game replaces the score
     assert.equal(s.room.cardsCommand(host(s), 'start'), true);
     assert.deepEqual(cards(s).scores, zeroPoints());

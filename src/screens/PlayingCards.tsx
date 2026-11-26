@@ -1,3 +1,4 @@
+import { OverallBoard } from '../components/OverallBoard';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { CARDS_POINTS, CARDS_ROUNDS } from '../../shared/activities';
 import { finalPosition } from '../../shared/cards';
@@ -6,8 +7,10 @@ import { rankTeams, TEAMS, teamName, type TeamId } from '../../shared/teams';
 import { uiSound } from '../audio/ui-sounds';
 import { TeamPodium } from '../components/arcade/TeamPodium';
 import { CardBack, CardFace, JokerFace, PLAIN_FACES } from '../components/cards/CardArt';
+import { TimerRing } from '../components/arcade/TimerRing';
 import { IconTrophy } from '../components/Icons';
-import { HostBar, PortalFrame, PortalLayout, PortalTitle, ScoreStrip, participantsOf } from '../portal/parts';
+import { useSecondsLeft, useTimeFraction } from '../portal/hooks';
+import { HostBar, PortalFrame, PortalLayout, PortalTitle, OverallStrip, participantsOf } from '../portal/parts';
 import { cardPickKey, socket, useGame } from '../store';
 
 /** Playing Cards: watch the joker, follow the shuffle, tap the card. The first correct pick wins its team the round. */
@@ -19,7 +22,7 @@ export function PlayingCardsScreen() {
   const scores = room.activities.find((a) => a.id === 'cards')!.points;
   const title = (
     <PortalTitle
-      kicker="Activity 3 of 4"
+      kicker="Activity 2 of 3"
       title="Playing Cards"
       lead={
         c && c.stage !== 'over'
@@ -46,7 +49,7 @@ const LEAD: Record<CardsInfo['stage'], string> = {
   over: '',
 };
 
-function Intro({ scores, title }: { scores: Record<TeamId, number>; title: ReactNode }) {
+function Intro({ title }: { scores: Record<TeamId, number>; title: ReactNode }) {
   const room = useGame((s) => s.room)!;
   const me = useGame((s) => s.me)!;
   const cardsOp = useGame((s) => s.cardsOp);
@@ -93,7 +96,7 @@ function Intro({ scores, title }: { scores: Record<TeamId, number>; title: React
             </button>
           </HostBar>
           {isHost && here === 0 && <p className="note">Nobody on a team is here yet — share the room code from the dashboard.</p>}
-          <ScoreStrip scores={scores} caption="Playing Cards team scores" />
+          <OverallStrip game="cards" />
         </>
       }
     />
@@ -138,12 +141,13 @@ function Round({ c, title }: { c: CardsInfo; title: ReactNode }) {
               </span>
               <span className="pill pill-accent er-chip">{c.cards} cards</span>
               <span className="pc-status">{STATUS[c.stage]}</span>
+              {c.stage === 'pick' && <PickTimer c={c} />}
             </div>
             <CardTable c={c} pickable={canPick} myPick={myPick} onPick={(card) => (uiSound.select(), cardPick(card))} />
             {c.stage === 'pick' && (
               <p className="pc-progress">
                 <b>{c.picked}</b> of {c.eligible} picked
-                {isHost ? ' · reveal it whenever you like' : myPick !== undefined ? ' · locked in — waiting for the host' : myTeam === null ? ' · pick a team on the dashboard to play' : ''}
+                {isHost ? ' · it turns over when the time is up, or reveal it sooner' : myPick !== undefined ? ' · locked in — the answer shows when the time is up' : myTeam === null ? ' · pick a team on the dashboard to play' : ''}
               </p>
             )}
             {revealed && (
@@ -169,7 +173,7 @@ function Round({ c, title }: { c: CardsInfo; title: ReactNode }) {
       }
       side={
         <>
-          <HostBar isHost={isHost} waiting={c.stage === 'pick' ? 'Pick a card — the host reveals the answer.' : 'Waiting for the host to continue…'}>
+          <HostBar isHost={isHost} waiting={c.stage === 'pick' ? 'Pick a card before the time runs out.' : 'Waiting for the host to continue…'}>
             {c.stage === 'ready' && (
               <button className="btn btn-primary btn-lg" onClick={() => cardsOp('show')}>
                 <span>Show the joker</span>
@@ -202,7 +206,7 @@ function Round({ c, title }: { c: CardsInfo; title: ReactNode }) {
               <span>Reset game</span>
             </button>
           </HostBar>
-          <ScoreStrip scores={c.scores} gained={revealed ? revealed.gained : undefined} caption="Playing Cards team scores" />
+          <OverallStrip game="cards" gained={revealed ? revealed.gained : undefined} />
         </>
       }
     />
@@ -403,37 +407,26 @@ function Over({ c, title }: { c: CardsInfo; title: ReactNode }) {
       side={
         <>
           <HostBar isHost={isHost} waiting="Waiting for the host to continue…">
-            <button className="btn btn-primary btn-lg" onClick={() => openActivity('hub')}>
-              <span>Dashboard &amp; overall leaderboard</span>
+            <button className="btn btn-primary btn-lg" onClick={() => openActivity('trivia')}>
+              <span>Next: Tech Trivia</span>
+            </button>
+            <button className="btn btn-secondary btn-lg" onClick={() => openActivity('hub')}>
+              <span>Dashboard</span>
             </button>
             <button className="btn btn-secondary btn-lg" onClick={() => cardsOp('start')} title="A fresh game; this game’s points are replaced">
               <span>Play again</span>
             </button>
           </HostBar>
-          <section className="card tt-board-card" aria-label="Final team leaderboard">
-            <h2 className="section-title">
-              Final leaderboard <span>team points</span>
-            </h2>
-            <div className="tt-board">
-              {ranks.map((r) => (
-                <div key={r.id} className={`tt-row tm-${r.id}`}>
-                  <span className="tt-rank">{total === 0 ? '–' : r.tied ? `T${r.rank}` : r.rank}</span>
-                  <span className="tt-name">
-                    <i className="tm-dot" aria-hidden />
-                    {teamName(r.id)}
-                  </span>
-                  <span className="tt-scored">
-                    {c.history.filter((h) => h.gained[r.id] > 0).length} of {c.rounds} won
-                  </span>
-                  <span className="tt-total">
-                    {r.points} <small>pts</small>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
+          <OverallBoard game="cards" />
         </>
       }
     />
   );
+}
+
+/** The pick countdown, timed from the server's clock: when it reaches zero the server turns the cards over. */
+function PickTimer({ c }: { c: CardsInfo }) {
+  const left = useSecondsLeft(c.pickEndsAt);
+  const frac = useTimeFraction(c.pickEndsAt, c.pickMs);
+  return <TimerRing seconds={left} fraction={frac} size={64} />;
 }

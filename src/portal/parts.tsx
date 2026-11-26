@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ACTIVITIES, type ActivityStatus, type Screen } from '../../shared/activities';
+import { ACTIVITIES, type ActivityId, type ActivityStatus, type Screen } from '../../shared/activities';
 import type { RoomInfo } from '../../shared/protocol';
 import { rankTeams, TEAMS, teamName, type TeamId } from '../../shared/teams';
 import { CountUp } from '../components/arcade/CountUp';
@@ -102,8 +102,38 @@ export function PortalTitle({ kicker, title, lead }: { kicker: string; title: st
   );
 }
 
-/** The three teams with their points in one activity. The team that is up (if any) is highlighted; `gained` shows this round's points. */
-export function ScoreStrip({ scores, active, gained, caption }: { scores: Record<TeamId, number>; active?: TeamId | null; gained?: Partial<Record<TeamId, number>>; caption?: string }) {
+/**
+ * The one overall scoreboard, live during a game: every team's running total over all the games (it grows the moment a round is
+ * scored), with what this game has added so far under each name. `gained` flashes this round's points.
+ */
+export function OverallStrip({ game, active, gained }: { game: ActivityId; active?: TeamId | null; gained?: Partial<Record<TeamId, number>> }) {
+  const overall = useGame((s) => s.room?.overall ?? []);
+  const scores = Object.fromEntries(TEAMS.map((t) => [t.id, overall.find((r) => r.id === t.id)?.points ?? 0])) as Record<TeamId, number>;
+  const detail = Object.fromEntries(TEAMS.map((t) => [t.id, `this game ${overall.find((r) => r.id === t.id)?.byActivity[game] ?? 0}`])) as Record<TeamId, string>;
+  return (
+    <section className="pt-overall" aria-labelledby="pt-overall-title">
+      <h2 id="pt-overall-title" className="section-title">
+        Overall scoreboard <span>all games added up</span>
+      </h2>
+      <ScoreStrip scores={scores} active={active} gained={gained} detail={detail} caption="Overall scoreboard" />
+    </section>
+  );
+}
+
+/** The three teams with their points. The team that is up (if any) is highlighted; `gained` shows this round's points. */
+export function ScoreStrip({
+  scores,
+  active,
+  gained,
+  caption,
+  detail,
+}: {
+  scores: Record<TeamId, number>;
+  active?: TeamId | null;
+  gained?: Partial<Record<TeamId, number>>;
+  caption?: string;
+  detail?: Record<TeamId, string>;
+}) {
   const ranks = new Map(rankTeams(scores).map((r) => [r.id, r]));
   const any = TEAMS.some((t) => scores[t.id] > 0);
   return (
@@ -119,6 +149,7 @@ export function ScoreStrip({ scores, active, gained, caption }: { scores: Record
             <span className="pt-score-name">
               <i className="tm-dot" aria-hidden />
               {t.name}
+              {detail && <small className="pt-score-detail">{detail[t.id]}</small>}
             </span>
             <span className="pt-score-pts">
               <CountUp value={scores[t.id]} sound />

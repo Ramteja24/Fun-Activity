@@ -42,7 +42,7 @@ describe('routing', () => {
     const lobby = read('src/screens/Lobby.tsx');
     assert.match(lobby, /\{isHost && \(\s*<button className="[^"]*" onClick=\{\(\) => openActivity\('hub'\)\}/);
     const results = read('src/screens/MatchResults.tsx');
-    assert.match(results, /isHost[\s\S]{0,300}<button className="[^"]*" onClick=\{\(\) => openActivity\('pose'\)\}/, 'host-only: on to the Funny Pose Challenge');
+    assert.match(results, /isHost[\s\S]{0,300}<button className="[^"]*" onClick=\{\(\) => openActivity\('cards'\)\}/, 'host-only: on to Playing Cards');
     assert.match(results, /onClick=\{newMatch\}>\s*Start a new match · scores back to zero/, 'the new-match control keeps its words');
   });
 });
@@ -50,8 +50,8 @@ describe('routing', () => {
 describe('the dashboard', () => {
   const hub = read('src/screens/Hub.tsx');
 
-  test('lists the four activities from the shared definition, in order, with status and their own team scores', () => {
-    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Funny Pose Challenge', 'Playing Cards', 'Tech Trivia']);
+  test('lists the three activities from the shared definition, in order, with status and their own team scores', () => {
+    assert.deepEqual(ACTIVITIES.map((a) => a.name), ['TypeDrive', 'Playing Cards', 'Tech Trivia']);
     assert.match(hub, /ACTIVITIES\.map\(\(a, i\) =>/);
     assert.match(hub, /STATUS_LABEL\[score\.status\]/);
     assert.match(hub, /score\.points\[t\.id\]/);
@@ -66,10 +66,10 @@ describe('the dashboard', () => {
     assert.match(parts, /return isHost \? \(\s*<button key=\{target\} type="button" className=\{cls\}/, 'the stepper is clickable for the host only');
   });
 
-  test('shows the overall leaderboard (placements + each activity’s own points), the teams with their members, the room code and a tie as a tie', () => {
+  test('shows the one overall scoreboard (every game’s points added up, with each game’s share), the teams with their members, the room code and a tie as a tie', () => {
     assert.match(hub, /room\.overall\]\.sort\(/);
     assert.match(hub, /r\.tied \? `T\$\{r\.rank\}` : r\.rank/);
-    assert.match(hub, /placement pts/);
+    assert.match(hub, /r\.byActivity\[a\.id\]/);
     assert.match(hub, /TeamRoster room=\{room\} me=\{me\} onPick=\{setTeam\}/);
     assert.match(hub, /lb-plate/);
     assert.match(hub, /overallLeaders\(room\.overall\)/);
@@ -97,8 +97,9 @@ describe('Funny Pose Challenge', () => {
     assert.doesNotMatch(read('src/store.ts'), /'player'/);
   });
 
-  test('only the host can click a team (everyone else watches), a team with nobody here or a spin in progress cannot be clicked', () => {
-    assert.match(screen, /disabled=\{!isHost \|\| here\(t\.id\) === 0 \|\| spinning \|\| \(selected && p\.team === t\.id\)\}/);
+  test('only the host can click a team (everyone else watches), a team with nobody here, a team that has had its rounds or a spin in progress cannot be clicked', () => {
+    assert.match(screen, /disabled=\{!isHost \|\| here\(t\.id\) === 0 \|\| full \|\| spinning \|\| \(selected && p\.team === t\.id\)\}/);
+    assert.match(screen, /const full = poseTeamFull\(t\.id, p\.turns, here\)/);
     assert.match(screen, /TEAMS\.map\(\(t\) =>/, 'the three existing teams');
     assert.match(screen, /<HostBar isHost=\{isHost\}/, 'participants get a waiting message in place of the controls');
   });
@@ -127,7 +128,7 @@ describe('Funny Pose Challenge', () => {
     assert.match(screen, /<h2 className="er-up-name">\{player\.name\}<\/h2>/);
     assert.match(screen, /<p className="er-up-team">\{teamName\(team\)\}<\/p>/);
     assert.match(screen, /useSecondsLeft\(p\.endsAt\)/);
-    assert.match(screen, /<ScoreStrip scores=\{p\.scores\}/);
+    assert.match(screen, /<OverallStrip game="pose" active={team}/, "the right panel is the one overall scoreboard, live");
     assert.match(screen, /const pose = poseById\(p\.poseId\)/, 'the pose exists on screen only once the server has sent its id');
     assert.match(screen, /\{pose && <PoseCard pose=\{pose\} outcome=\{judged \? p\.result : undefined\} \/>\}/);
     assert.match(screen, /The pose is hidden until the host reveals it/);
@@ -142,8 +143,8 @@ describe('Funny Pose Challenge', () => {
 
   test('a finished session shows the winner (or a tie), every round, and the host’s next steps', () => {
     assert.match(screen, /It’s a tie!/);
-    assert.match(screen, /openActivity\('trivia'\)/);
-    assert.match(screen, /Next: Tech Trivia/);
+    assert.match(screen, /openActivity\('cards'\)/);
+    assert.match(screen, /Next: Playing Cards/);
   });
 
   test('the reference picture is drawn from joint angles as SVG, so every pose has a visual, and it respects reduced motion', () => {

@@ -1,5 +1,6 @@
+import { OverallBoard } from '../components/OverallBoard';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { POSE_PERFORM_MS, POSE_POINTS, POSE_ROUNDS } from '../../shared/activities';
+import { POSE_PERFORM_MS, POSE_POINTS, POSE_ROUNDS, POSE_TURNS_PER_TEAM, poseTeamFull } from '../../shared/activities';
 import type { PoseInfo } from '../../shared/protocol';
 import { poseById, POSE_BANK, type PoseChallenge } from '../../shared/poses';
 import { rankTeams, TEAMS, teamName } from '../../shared/teams';
@@ -10,7 +11,7 @@ import { TeamPodium } from '../components/arcade/TeamPodium';
 import { TimerRing } from '../components/arcade/TimerRing';
 import { IconCheck, IconTrophy, IconX } from '../components/Icons';
 import { useReducedMotion, useSecondsLeft, useSpinProgress, useTimeFraction } from '../portal/hooks';
-import { HostBar, PortalFrame, PortalLayout, PortalTitle, ScoreStrip, TeamRoster, participantsOf } from '../portal/parts';
+import { HostBar, PortalFrame, PortalLayout, PortalTitle, OverallStrip, TeamRoster, participantsOf } from '../portal/parts';
 import { PoseDrawing } from '../portal/PoseDrawing';
 import { Reel, reelPosition } from '../portal/Reel';
 import { useGame } from '../store';
@@ -62,7 +63,7 @@ export function FunnyPoseScreen() {
 
 type Slots = { title: ReactNode; teams: ReactNode };
 
-function Intro({ scores, title, teams }: { scores: Record<'titans' | 'vibe' | 'ctrl', number> } & Slots) {
+function Intro({ title, teams }: { scores: Record<'titans' | 'vibe' | 'ctrl', number> } & Slots) {
   const room = useGame((s) => s.room)!;
   const me = useGame((s) => s.me)!;
   const poseOp = useGame((s) => s.poseOp);
@@ -94,7 +95,7 @@ function Intro({ scores, title, teams }: { scores: Record<'titans' | 'vibe' | 'c
         <li>
           <b>4</b>
           <span>
-            The host marks it. <em>Completed</em> earns the player’s team {POSE_POINTS} points; not completed earns none. {POSE_ROUNDS} rounds per session, from a bank of {POSE_BANK.length} poses.
+            The host marks it. <em>Completed</em> earns the player’s team {POSE_POINTS} points; not completed earns none. {POSE_ROUNDS} rounds per session — {POSE_TURNS_PER_TEAM} for each team — from a bank of {POSE_BANK.length} poses.
           </span>
         </li>
       </ol>
@@ -111,7 +112,7 @@ function Intro({ scores, title, teams }: { scores: Record<'titans' | 'vibe' | 'c
         </button>
       </HostBar>
       {isHost && here === 0 && <p className="note">Nobody on a team is here yet — share the room code from the dashboard.</p>}
-      <ScoreStrip scores={scores} caption="Funny Pose Challenge team scores" />
+      <OverallStrip game="pose" />
           {teams}
         </>
       }
@@ -242,7 +243,7 @@ function Round({ p, title, teams }: { p: PoseInfo } & Slots) {
         </button>
       </HostBar>
       {isHost && eligible === 0 && <p className="note">Nobody on a team is online right now.</p>}
-      <ScoreStrip scores={p.scores} active={team} gained={judged && p.result === 'completed' && team ? { [team]: p.gained ?? 0 } : undefined} caption="Funny Pose Challenge team scores" />
+      <OverallStrip game="pose" active={team} gained={judged && p.result === 'completed' && team ? { [team]: p.gained ?? 0 } : undefined} />
 
 
       {teams}
@@ -275,21 +276,24 @@ function Picking({ p }: { p: PoseInfo }) {
           <b>Step 1</b> · {isHost ? (selected ? 'Choose a different team, or start the round' : 'Choose the team that plays this round') : 'The host chooses the team'}
         </p>
         <div className="fp-teams">
-          {TEAMS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`fp-team tm-${t.id}${here(t.id) === 0 ? ' empty' : ''}`}
-              aria-pressed={p.team === t.id}
-              disabled={!isHost || here(t.id) === 0 || spinning || (selected && p.team === t.id)}
-              onClick={() => poseOp({ op: 'team', team: t.id })}
-            >
-              <span className="fp-team-name">{t.name}</span>
-              <span className="fp-team-meta">
-                {here(t.id)} here · {p.turns[t.id]} played
-              </span>
-            </button>
-          ))}
+          {TEAMS.map((t) => {
+            const full = poseTeamFull(t.id, p.turns, here);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                className={`fp-team tm-${t.id}${here(t.id) === 0 || full ? ' empty' : ''}`}
+                aria-pressed={p.team === t.id}
+                disabled={!isHost || here(t.id) === 0 || full || spinning || (selected && p.team === t.id)}
+                onClick={() => poseOp({ op: 'team', team: t.id })}
+              >
+                <span className="fp-team-name">{t.name}</span>
+                <span className="fp-team-meta">
+                  {here(t.id)} here · {p.turns[t.id]} of {POSE_TURNS_PER_TEAM} played
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -479,17 +483,17 @@ function Over({ p, title, teams }: { p: PoseInfo } & Slots) {
       side={
         <>
       <HostBar isHost={isHost} waiting="Waiting for the host to choose what is next…">
-        <button className="btn btn-primary btn-lg" onClick={() => openActivity('trivia')}>
-          <span>Next: Tech Trivia</span>
+        <button className="btn btn-primary btn-lg" onClick={() => openActivity('cards')}>
+          <span>Next: Playing Cards</span>
         </button>
         <button className="btn btn-secondary btn-lg" onClick={() => openActivity('hub')}>
-          <span>Dashboard &amp; overall scores</span>
+          <span>Dashboard</span>
         </button>
         <button className="btn btn-secondary btn-lg" onClick={() => poseOp({ op: 'start' })} title="A fresh session with new poses; this session’s points are replaced">
           <span>Play another session</span>
         </button>
       </HostBar>
-      <ScoreStrip scores={p.scores} caption="Funny Pose Challenge final scores" />
+      <OverallBoard game="pose" />
       {teams}
         </>
       }

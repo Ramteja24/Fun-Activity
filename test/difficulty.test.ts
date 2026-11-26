@@ -252,7 +252,7 @@ describe('host control & multiplayer synchronization across all three difficulti
         ],
       );
       assert.deepEqual(rows.map((r) => r.trophies), [trophiesFor(1, true), trophiesFor(2, true), trophiesFor(3, true)]);
-      assert.deepEqual(rows.map((r) => r.teamPoints), [100, 75, 50]);
+      assert.deepEqual(rows.map((r) => r.teamPoints), [10, 8, 6]);
 
       // Verify WPM, accuracy, and global score formulas on the server rows
       for (const r of rows) {
@@ -276,9 +276,9 @@ describe('host control & multiplayer synchronization across all three difficulti
       }
     }
 
-    // Cumulative trophies and team standings after all 3 difficulty races (3 × [100, 75, 50] = [300, 225, 150])
+    // Cumulative trophies and team standings after all 3 difficulty races (3 × [10, 8, 6] = [30, 24, 18])
     const teamTotals = Object.fromEntries(host.room!.teams.map((t) => [t.id, t.points]));
-    assert.deepEqual(teamTotals, { titans: 300, vibe: 225, ctrl: 150 });
+    assert.deepEqual(teamTotals, { titans: 30, vibe: 24, ctrl: 18 });
     assert.equal(host.room!.players.find((p) => p.name === 'Asha')!.trophies, 75);
     assert.equal(host.room!.players.find((p) => p.name === 'Ben')!.trophies, 45);
     assert.equal(host.room!.players.find((p) => p.name === 'Chitra')!.trophies, 30);

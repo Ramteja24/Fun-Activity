@@ -42,7 +42,7 @@ describe('the 24 poses', () => {
       assert.equal(poseById(p.id), p);
     }
     assert.equal(poseById('nope'), undefined);
-    assert.ok(POSE_ROUNDS < POSE_BANK.length && POSE_ROUNDS === 8, 'a session uses 8 of the 24');
+    assert.ok(POSE_ROUNDS < POSE_BANK.length && POSE_ROUNDS === 6, 'a session uses 6 of the 24: two rounds for each of the three teams');
   });
 
   test('the poses the brief names are all there: confused, shocked, laughing, crying dramatically, superhero, sleeping, funny dance', () => {
@@ -90,7 +90,9 @@ describe('the pose messages', () => {
 });
 
 // ------------------------------------------------------------------------------------------------ in a room
-describe('the Funny Pose Challenge in a room', () => {
+// The Funny Pose Challenge is HIDDEN (commented out of ACTIVITIES in shared/activities.ts), so a room no longer opens it.
+// Un-skip this block and the WebSocket one below when it comes back.
+describe.skip('the Funny Pose Challenge in a room', () => {
   let sim: Sim | null = null;
   afterEach(() => {
     sim?.destroy();
@@ -103,11 +105,11 @@ describe('the Funny Pose Challenge in a room', () => {
     for (const [n, t] of [['A1', 'titans'], ['A2', 'titans'], ['B1', 'vibe'], ['B2', 'vibe'], ['C1', 'ctrl'], ['C2', 'ctrl']] as const) sim.join(n, t);
     return sim;
   };
-  /** A room whose Titans have `n` players (A1…An), plus one Vibe player. */
-  const bigTeam = (n: number, seed: number) => {
+  /** A room whose Titans have `n` players (A1…An), plus one Vibe player (or, with `alone`, nobody else — so the Titans can play every round). */
+  const bigTeam = (n: number, seed: number, alone = false) => {
     sim = new Sim({}, 8, false, { activity: 'pose', rand: seeded(seed) });
     for (let i = 1; i <= n; i++) sim.join(`A${i}`, 'titans');
-    sim.join('B1', 'vibe');
+    if (!alone) sim.join('B1', 'vibe');
     return sim;
   };
   const host = (s: Sim) => s.room.hostId;
@@ -194,16 +196,19 @@ describe('the Funny Pose Challenge in a room', () => {
   test('fairness: nobody is picked again until everyone eligible on the team has had a turn — over several cycles', () => {
     for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
       sim?.destroy();
-      const s = bigTeam(4, seed);
-      cmd(s, { op: 'start' });
+      const s = bigTeam(4, seed, true);
       const seq: string[] = [];
-      for (let r = 0; r < POSE_ROUNDS; r++) seq.push(playRound(s, 'titans', r % 2 === 0));
-      for (let w = 0; w < POSE_ROUNDS; w += 4) assert.equal(new Set(seq.slice(w, w + 4)).size, 4, `seed ${seed}: ${seq.join(' ')}`);
+      for (let session = 0; session < 2; session++) {
+        cmd(s, { op: 'reset' });
+        cmd(s, { op: 'start' });
+        for (let r = 0; r < POSE_ROUNDS; r++) seq.push(playRound(s, 'titans', r % 2 === 0));
+      }
+      for (let w = 0; w + 4 <= seq.length; w += 4) assert.equal(new Set(seq.slice(w, w + 4)).size, 4, `seed ${seed}: ${seq.join(' ')}`);
     }
   });
 
   test('the rotation carries over to the next session in the same room, and someone who joins late goes first', () => {
-    const s = bigTeam(4, 31);
+    const s = bigTeam(4, 31, true);
     cmd(s, { op: 'start' });
     const first: string[] = [];
     for (let r = 0; r < 6; r++) first.push(playRound(s, 'titans', true)); // one full cycle of four, then two of the next
@@ -356,34 +361,50 @@ describe('the Funny Pose Challenge in a room', () => {
     assert.deepEqual(info(s).activities[1]!.points, { titans: 0, vibe: 10, ctrl: 0 }, 'it is the activity’s own score');
   });
 
-  test('a whole session: 8 rounds, the host picks each team, the spinner each player; the team scores follow the host’s results', () => {
+  test('a whole session: 6 rounds, two for each team; the host picks each team, the spinner each player; the team scores follow the host’s results', () => {
     const s = room(21);
     cmd(s, { op: 'start' });
-    const plan: [TeamId, boolean][] = [['titans', true], ['vibe', true], ['ctrl', false], ['titans', false], ['vibe', true], ['ctrl', true], ['titans', true], ['ctrl', true]];
+    const plan: [TeamId, boolean][] = [['titans', true], ['vibe', true], ['ctrl', false], ['titans', true], ['vibe', false], ['ctrl', true]];
     const expected = zeroPoints();
     const performers: [TeamId, string][] = [];
     plan.forEach(([team, completed], i) => {
       assert.equal(pose(s).round, i + 1);
       assert.equal(pose(s).stage, 'pick');
+      if (i === 4) assert.equal(cmd(s, { op: 'team', team: 'titans' }), false, 'the Titans have had their two rounds: they cannot be picked again');
       performers.push([team, playRound(s, team, completed)]);
       if (completed) expected[team] += POSE_POINTS;
       assert.deepEqual(pose(s).scores, expected);
     });
     const done = pose(s);
-    assert.equal(done.stage, 'over', 'the 8th "next" ends the session');
-    assert.equal(done.history.length, 8);
+    assert.equal(done.stage, 'over', 'the 6th "next" ends the session');
+    assert.equal(done.history.length, 6);
     for (const [team, who] of performers) assert.ok(who.startsWith(team === 'titans' ? 'A' : team === 'vibe' ? 'B' : 'C'), `${who} plays for ${team}`);
-    for (const t of ['titans', 'ctrl'] as const) {
+    for (const t of TEAM_IDS) {
       const mine = performers.filter(([team]) => team === t).map(([, who]) => who);
       assert.equal(new Set(mine.slice(0, 2)).size, 2, `${t}: nobody twice before everyone`);
     }
-    assert.equal(new Set(done.history.map((h) => h.poseId)).size, 8, 'eight different poses');
-    assert.deepEqual(done.turns, { titans: 3, vibe: 2, ctrl: 3 });
-    assert.deepEqual(done.scores, { titans: 20, vibe: 20, ctrl: 20 }, 'level on points: the screen shows a tie');
+    assert.equal(new Set(done.history.map((h) => h.poseId)).size, 6, 'six different poses');
+    assert.deepEqual(done.turns, { titans: 2, vibe: 2, ctrl: 2 }, 'every team got the same number of rounds');
+    assert.deepEqual(done.scores, { titans: 20, vibe: 10, ctrl: 10 });
     assert.equal(cmd(s, { op: 'next' }), false);
     assert.equal(cmd(s, { op: 'team', team: 'vibe' }), false, 'nothing to choose once it is over');
     assert.equal(info(s).activities[1]!.status, 'done');
     assert.ok(done.history.every((h) => h.player.id !== host(s)), 'the host never performed');
+  });
+
+  test('two rounds per team — but a session never gets stuck when a team that is owed rounds has nobody here', () => {
+    sim = new Sim({}, 8, false, { activity: 'pose', rand: seeded(9) });
+    for (const [n, t] of [['A1', 'titans'], ['A2', 'titans'], ['B1', 'vibe'], ['B2', 'vibe']] as const) sim.join(n, t); // no Ctrl player here
+    const s = sim;
+    cmd(s, { op: 'start' });
+    playRound(s, 'titans', true);
+    playRound(s, 'titans', true);
+    assert.equal(cmd(s, { op: 'team', team: 'titans' }), false, 'the Vibe Tribe still has rounds and is here: the Titans wait');
+    playRound(s, 'vibe', true);
+    playRound(s, 'vibe', true);
+    playRound(s, 'titans', true); // Ctrl's two rounds go to whoever is here
+    playRound(s, 'vibe', false);
+    assert.equal(pose(s).stage, 'over');
   });
 
   test('every screen sees the same spinner, the same pick and the same start time', () => {
@@ -505,7 +526,7 @@ describe('the Funny Pose Challenge in a room', () => {
 });
 
 // ------------------------------------------------------------------------------------------------ over real sockets
-describe('the Funny Pose Challenge over real WebSockets', () => {
+describe.skip('the Funny Pose Challenge over real WebSockets', () => {
   test('the host chooses the team, every screen runs the same spinner and lands on the same player, then the round continues; participants cannot choose', async () => {
     const app = createApp({ config: { ...FAST } });
     const port = await app.listen(0, '127.0.0.1');

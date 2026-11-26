@@ -1,3 +1,4 @@
+import { OverallBoard } from '../components/OverallBoard';
 import { TEAMS, teamName, type TeamId } from '../../shared/teams';
 import { TeamPodium } from '../components/arcade/TeamPodium';
 import { rankLabel } from '../components/lobby/TeamBoard';
@@ -60,9 +61,11 @@ export function MatchResultsScreen() {
             <TeamPodium scores={Object.fromEntries(room.teams.map((t) => [t.id, t.points])) as Record<TeamId, number>} label="Match podium" />
           </section>
 
+          <OverallBoard game="typedrive" className="mr-overall" />
+
           <section className="mr-teams" aria-label="Team totals">
             <h2 className="section-title">
-              Team totals <span>what every driver contributed</span>
+              TypeDrive points <span>what every driver contributed</span>
             </h2>
             {teams.map((t) => {
               const players = contributions.filter((c) => c.team === t.id);
@@ -105,11 +108,11 @@ export function MatchResultsScreen() {
           <div className="card mr-actions">
             {isHost ? (
               <>
-                <button className="btn btn-lg btn-primary" onClick={() => openActivity('pose')}>
-                  Next activity: Funny Pose Challenge
+                <button className="btn btn-lg btn-primary" onClick={() => openActivity('cards')}>
+                  Next activity: Playing Cards
                 </button>
                 <button className="btn btn-lg btn-secondary" onClick={() => openActivity('hub')}>
-                  Activity hub · overall leaderboard
+                  Dashboard · overall scoreboard
                 </button>
                 <button className="btn btn-lg btn-ghost" onClick={newMatch}>
                   Start a new match · scores back to zero

@@ -44,10 +44,10 @@ describe('team data and scoring rules', () => {
     for (const t of TEAMS) for (const m of t.members) assert.ok(m.length <= NAME_MAX, `${m} fits a player name`);
   });
 
-  test('points per finishing place: 100 · 75 · 50 · 30 · 20, then 10 for every other finisher, 0 for anyone who did not finish', () => {
-    assert.deepEqual([...FINISH_POINTS], [100, 75, 50, 30, 20]);
-    assert.equal(OTHER_FINISHER_POINTS, 10);
-    assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 20, 50].map((r) => teamPointsFor(r, true)), [100, 75, 50, 30, 20, 10, 10, 10, 10]);
+  test('points per finishing place: 10 · 8 · 6 · 4 · 2, then 1 for every other finisher, 0 for anyone who did not finish', () => {
+    assert.deepEqual([...FINISH_POINTS], [10, 8, 6, 4, 2]);
+    assert.equal(OTHER_FINISHER_POINTS, 1);
+    assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 20, 50].map((r) => teamPointsFor(r, true)), [10, 8, 6, 4, 2, 1, 1, 1, 1]);
     for (const rank of [1, 2, 5, 6, 30]) assert.equal(teamPointsFor(rank, false), 0, `a DNF in place ${rank} earns nothing`);
     assert.equal(teamPointsFor(0, true), 0);
     assert.equal(teamPointsFor(1.5, true), 0);
@@ -151,17 +151,17 @@ describe('teams in a room', () => {
     assert.deepEqual(watcher.conn.room!.players.filter((p) => p.team === 'titans').map((p) => p.name), ['A1']);
   });
 
-  test('scoring: 100 / 75 / 50 / 30 / 20 / 10 by finishing place from the server’s final results; each team’s total is its drivers’ sum', () => {
+  test('scoring: 10 / 8 / 6 / 4 / 2 / 1 by finishing place from the server’s final results; each team’s total is its drivers’ sum', () => {
     const s = six();
     s.join('A3', 'titans');
     // finish order: C1, B1, A1, C2, B2, A2, A3
     const info = race(s, { C1: 60, B1: 70, A1: 80, C2: 90, B2: 100, A2: 110, A3: 120 });
     const rows = info.results as ResultRow[];
-    assert.deepEqual(rows.map((r) => [r.name, r.rank, r.teamPoints]), [['C1', 1, 100], ['B1', 2, 75], ['A1', 3, 50], ['C2', 4, 30], ['B2', 5, 20], ['A2', 6, 10], ['A3', 7, 10]]);
+    assert.deepEqual(rows.map((r) => [r.name, r.rank, r.teamPoints]), [['C1', 1, 10], ['B1', 2, 8], ['A1', 3, 6], ['C2', 4, 4], ['B2', 5, 2], ['A2', 6, 1], ['A3', 7, 1]]);
     assert.deepEqual(rows.map((r) => r.team), ['ctrl', 'vibe', 'titans', 'ctrl', 'vibe', 'titans', 'titans']);
-    assert.deepEqual(pts(info), { titans: 50 + 10 + 10, vibe: 75 + 20, ctrl: 100 + 30 });
+    assert.deepEqual(pts(info), { titans: 6 + 1 + 1, vibe: 8 + 2, ctrl: 10 + 4 });
     assert.deepEqual(info.teams.map((t) => [t.id, t.rank]), [['titans', 3], ['vibe', 2], ['ctrl', 1]]);
-    assert.deepEqual(info.match.last, { raceId: 1, gained: { titans: 70, vibe: 95, ctrl: 130 } });
+    assert.deepEqual(info.match.last, { raceId: 1, gained: { titans: 8, vibe: 10, ctrl: 14 } });
     assert.equal(info.match.races, 1);
     assert.equal(info.match.ended, false);
     for (const e of s.entries.values()) assert.deepEqual(pts(e.conn.room!), pts(info), 'every client gets the same totals');
@@ -175,8 +175,8 @@ describe('teams in a room', () => {
     const a1 = rows.find((r) => r.name === 'A1')!;
     assert.equal(a1.finished, false);
     assert.equal(a1.teamPoints, 0);
-    assert.deepEqual(rows.filter((r) => r.finished).map((r) => [r.name, r.teamPoints]), [['C1', 100], ['B1', 75], ['B2', 50], ['C2', 30], ['A2', 20]]);
-    assert.deepEqual(pts(info), { titans: 20, vibe: 125, ctrl: 130 });
+    assert.deepEqual(rows.filter((r) => r.finished).map((r) => [r.name, r.teamPoints]), [['C1', 10], ['B1', 8], ['B2', 6], ['C2', 4], ['A2', 2]]);
+    assert.deepEqual(pts(info), { titans: 2, vibe: 8 + 6, ctrl: 10 + 4 });
   });
 
   test('only racers score: the host, a spectator who joined late and a driver who had not picked a team all earn nothing', () => {
@@ -191,7 +191,7 @@ describe('teams in a room', () => {
     const rows = info.results as ResultRow[];
     assert.ok(rows.every((r) => r.name !== Sim.HOST && r.name !== 'Late'));
     assert.equal(rows.length, 6);
-    assert.equal(pts(info).titans + pts(info).vibe + pts(info).ctrl, 100 + 75 + 50 + 30 + 20 + 10, 'only the six racers’ points exist');
+    assert.equal(pts(info).titans + pts(info).vibe + pts(info).ctrl, 10 + 8 + 6 + 4 + 2 + 1, 'only the six racers’ points exist');
     assert.equal(late.p.team, 'titans');
     assert.ok(!info.match.contributions!.some((c) => c.name === Sim.HOST || c.name === 'Late'));
   });
@@ -216,21 +216,21 @@ describe('teams in a room', () => {
   test('team points persist across races and are never reset between them; contributions add up per driver', () => {
     const s = six();
     const one = race(s, { C1: 60, B1: 70, A1: 80, C2: 90, B2: 100, A2: 110 });
-    assert.deepEqual(pts(one), { titans: 50 + 10, vibe: 75 + 20, ctrl: 100 + 30 });
+    assert.deepEqual(pts(one), { titans: 6 + 1, vibe: 8 + 2, ctrl: 10 + 4 });
     // race again straight from the results page, in a different order: A2 wins
     const two = race(s, { A2: 60, A1: 70, C2: 80, B2: 90, B1: 100, C1: 110 });
-    assert.deepEqual(pts(two), { titans: 60 + 100 + 75, vibe: 95 + 30 + 20, ctrl: 130 + 50 + 10 });
-    assert.deepEqual(two.match.last, { raceId: 2, gained: { titans: 175, vibe: 50, ctrl: 60 } });
+    assert.deepEqual(pts(two), { titans: 7 + 10 + 8, vibe: 10 + 4 + 2, ctrl: 14 + 6 + 1 });
+    assert.deepEqual(two.match.last, { raceId: 2, gained: { titans: 18, vibe: 6, ctrl: 7 } });
     assert.equal(two.match.races, 2);
     // …and again after a visit to the lobby
     assert.equal(s.room.backToLobby(s.room.hostId), true);
     assert.deepEqual(pts(s.room.roomInfo()), pts(two));
     const three = race(s, { B1: 60, B2: 70, A1: 80, A2: 90, C1: 100, C2: 110 });
-    assert.deepEqual(pts(three), { titans: 235 + 50 + 30, vibe: 145 + 100 + 75, ctrl: 190 + 20 + 10 });
+    assert.deepEqual(pts(three), { titans: 25 + 6 + 4, vibe: 16 + 10 + 8, ctrl: 21 + 2 + 1 });
     assert.equal(three.match.races, 3);
     const c = three.match.contributions!;
     assert.equal(c.reduce((sum, x) => sum + x.points, 0), pts(three).titans + pts(three).vibe + pts(three).ctrl, 'contributions add up to the team totals');
-    assert.deepEqual(c.find((x) => x.name === 'A2'), { team: 'titans', id: s.get('A2').p.id, name: 'A2', points: 10 + 100 + 30, races: 3 });
+    assert.deepEqual(c.find((x) => x.name === 'A2'), { team: 'titans', id: s.get('A2').p.id, name: 'A2', points: 1 + 10 + 4, races: 3 });
     assert.deepEqual(c.map((x) => x.points), [...c.map((x) => x.points)].sort((a, b) => b - a), 'best contributor first');
   });
 
@@ -245,15 +245,15 @@ describe('teams in a room', () => {
     const typists = ['C1', 'B1', 'A1', 'C2', 'B2', 'A2'].map((n, i) => new Typist(s, n, { msPerChar: 60 + i * 10 }));
     s.runUntil((s.text.length * 130) / 1000 + 70, typists);
     const one = s.room.roomInfo();
-    assert.deepEqual(pts(one), { titans: 60, vibe: 95, ctrl: 130 });
-    // between races A1 (who scored 50 for the Titans) moves to the Vibe Tribe
+    assert.deepEqual(pts(one), { titans: 7, vibe: 10, ctrl: 14 });
+    // between races A1 (who scored 6 for the Titans) moves to the Vibe Tribe
     assert.equal(s.room.setTeam(s.get('A1').p, 'vibe'), true);
-    assert.deepEqual(pts(s.room.roomInfo()), pts(one), 'the 50 points stay with The Titans');
+    assert.deepEqual(pts(s.room.roomInfo()), pts(one), 'the 6 points stay with The Titans');
     const two = race(s, { A1: 60, B1: 70, C1: 80, A2: 90, B2: 100, C2: 110 });
-    // A1 wins (100) and B1 is 2nd (75), B2 5th (20) — all Vibe Tribe now; C1 3rd (50) and C2 6th (10) are Ctrl; A2 4th (30) is the only Titan
-    assert.deepEqual(two.match.last!.gained, { titans: 30, vibe: 195, ctrl: 60 }, 'A1 now scores for the Vibe Tribe');
+    // A1 wins (10) and B1 is 2nd (8), B2 5th (2) — all Vibe Tribe now; C1 3rd (6) and C2 6th (1) are Ctrl; A2 4th (4) is the only Titan
+    assert.deepEqual(two.match.last!.gained, { titans: 4, vibe: 10 + 8 + 2, ctrl: 6 + 1 }, 'A1 now scores for the Vibe Tribe');
     const a1 = two.match.contributions!.filter((c) => c.name === 'A1');
-    assert.deepEqual(a1.map((c) => [c.team, c.points]).sort(), [['titans', 50], ['vibe', 100]], 'A1’s contributions are kept per team');
+    assert.deepEqual(a1.map((c) => [c.team, c.points]).sort(), [['titans', 6], ['vibe', 10]], 'A1’s contributions are kept per team');
   });
 
   test('a driver who leaves or drops keeps what they earned; one who leaves mid-race is a DNF that scores 0', () => {
@@ -268,11 +268,11 @@ describe('teams in a room', () => {
     const info = s.room.roomInfo();
     const rows = info.results as ResultRow[];
     assert.deepEqual(rows.find((r) => r.name === 'A2'), { ...rows.find((r) => r.name === 'A2')!, finished: false, dnfReason: 'left', teamPoints: 0 });
-    assert.deepEqual(pts(info), { titans: 50, vibe: 75 + 20, ctrl: 100 + 30 }, 'five finishers scored; A2 added nothing');
+    assert.deepEqual(pts(info), { titans: 6, vibe: 8 + 2, ctrl: 10 + 4 }, 'five finishers scored; A2 added nothing');
     // C1 disconnects after the results: their points are still there, and in the contributions
     s.disconnect('C1');
-    assert.equal(pts(s.room.roomInfo()).ctrl, 130);
-    assert.equal(s.room.roomInfo().match.contributions!.find((c) => c.name === 'C1')!.points, 100);
+    assert.equal(pts(s.room.roomInfo()).ctrl, 14);
+    assert.equal(s.room.roomInfo().match.contributions!.find((c) => c.name === 'C1')!.points, 10);
     // A2 has left the room entirely, but their (zero) entry and name remain in the match
     assert.ok(![...s.room.players.values()].some((p) => p.name === 'A2'));
     assert.ok(info.match.contributions!.some((c) => c.name === 'A2' && c.points === 0 && c.team === 'titans'));
@@ -290,7 +290,7 @@ describe('teams in a room', () => {
     const ben = new Typist(sim, 'Ben', { msPerChar: 100 });
     sim.runUntil((sim.text.length * 100) / 1000 + 3, [ben]);
     assert.equal(sim.phase, 'results');
-    assert.deepEqual(pts(sim.room.roomInfo()), { titans: 0, vibe: 0, ctrl: 100 });
+    assert.deepEqual(pts(sim.room.roomInfo()), { titans: 0, vibe: 0, ctrl: 10 });
     // they choose a team themselves, then race next round
     assert.equal(sim.room.setTeam(asha.p, 'titans'), true);
     assert.equal(sim.start(), true);
@@ -311,7 +311,7 @@ describe('teams in a room', () => {
     const info = s.room.roomInfo();
     assert.equal(info.match.ended, true);
     assert.deepEqual(info.match.winners, ['ctrl'], 'Ctrl + Alt + Defeat have the most points');
-    assert.deepEqual(pts(info), { titans: 60, vibe: 95, ctrl: 130 });
+    assert.deepEqual(pts(info), { titans: 7, vibe: 10, ctrl: 14 });
     assert.ok(info.match.contributions!.length === 6);
     assert.equal(s.room.endMatch(s.room.hostId), false, 'already ended');
     for (const e of s.entries.values()) assert.deepEqual(e.conn.room!.match.winners, ['ctrl'], 'every client sees the winner');
@@ -325,11 +325,11 @@ describe('teams in a room', () => {
     sim.join('T1', 'titans');
     sim.join('V1', 'vibe');
     sim.join('K1', 'ctrl');
-    // one race: T1 first (100), V1 second (75), K1 third (50) …
+    // one race: T1 first (10), V1 second (8), K1 third (6) …
     race(sim, { T1: 60, V1: 70, K1: 80 });
-    // … a second race flips it so two teams are level at the top: V1 first (100), T1 second (75), K1 third (50) → T 175, V 175, K 100
+    // … a second race flips it so two teams are level at the top: V1 first (10), T1 second (8), K1 third (6) → T 18, V 18, K 12
     const info = race(sim, { V1: 60, T1: 70, K1: 80 });
-    assert.deepEqual(pts(info), { titans: 175, vibe: 175, ctrl: 100 });
+    assert.deepEqual(pts(info), { titans: 18, vibe: 18, ctrl: 12 });
     assert.deepEqual(info.teams.map((t) => [t.id, t.rank, t.tied]), [['titans', 1, true], ['vibe', 1, true], ['ctrl', 3, false]]);
     assert.equal(sim.room.endMatch(sim.room.hostId), true);
     assert.deepEqual(sim.room.roomInfo().match.winners!.slice().sort(), ['titans', 'vibe']);
@@ -365,7 +365,7 @@ describe('teams in a room', () => {
     assert.deepEqual(info.players.filter((p) => p.team === 'titans').map((p) => p.name), ['A1', 'A2'], 'everyone keeps their team');
     // and it all works again from zero
     const next = race(s, { A1: 60, A2: 70, B1: 80, B2: 90, C1: 100, C2: 110 });
-    assert.deepEqual(pts(next), { titans: 100 + 75, vibe: 50 + 30, ctrl: 20 + 10 });
+    assert.deepEqual(pts(next), { titans: 10 + 8, vibe: 6 + 4, ctrl: 2 + 1 });
     assert.equal(next.match.races, 1);
   });
 
@@ -459,10 +459,10 @@ describe('teams over real WebSockets', () => {
       };
 
       await raceTo([titan, ctrl, vibey]);
-      assert.deepEqual(host.room.results!.map((r) => [r.name, r.rank, r.team, r.teamPoints]), [['Titan', 1, 'titans', 100], ['Ctrl', 2, 'ctrl', 75], ['Vibey', 3, 'vibe', 50]]);
-      assert.deepEqual(pts(host.room), { titans: 100, vibe: 50, ctrl: 75 });
+      assert.deepEqual(host.room.results!.map((r) => [r.name, r.rank, r.team, r.teamPoints]), [['Titan', 1, 'titans', 10], ['Ctrl', 2, 'ctrl', 8], ['Vibey', 3, 'vibe', 6]]);
+      assert.deepEqual(pts(host.room), { titans: 10, vibe: 6, ctrl: 8 });
       await raceTo([ctrl, titan, vibey]); // "race again": the totals carry over
-      assert.deepEqual(pts(host.room), { titans: 175, vibe: 100, ctrl: 175 });
+      assert.deepEqual(pts(host.room), { titans: 18, vibe: 12, ctrl: 18 });
       for (const c of all) assert.deepEqual(pts(c.room), pts(host.room), `${c.me} sees the same totals`);
       assert.equal(host.room.match.races, 2);
       assert.deepEqual(host.room.teams.map((t) => [t.id, t.rank, t.tied]), [['titans', 1, true], ['vibe', 3, false], ['ctrl', 1, true]]);
@@ -475,7 +475,7 @@ describe('teams over real WebSockets', () => {
       await Promise.all(all.map((c) => c.waitFor((m) => m.t === 'room' && m.room.match.ended)));
       assert.deepEqual(host.room.match.winners!.slice().sort(), ['ctrl', 'titans'], 'the top two teams are level: a tie');
       const contributions = host.room.match.contributions!;
-      assert.deepEqual(contributions.map((c) => [c.name, c.points, c.races]).sort(), [['Ctrl', 175, 2], ['Titan', 175, 2], ['Vibey', 100, 2]]);
+      assert.deepEqual(contributions.map((c) => [c.name, c.points, c.races]).sort(), [['Ctrl', 18, 2], ['Titan', 18, 2], ['Vibey', 12, 2]]);
       for (const c of all) assert.deepEqual(c.room.match, host.room.match, 'every client sees the same result');
 
       // nothing can start or be switched now…

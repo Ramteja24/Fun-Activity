@@ -15,7 +15,7 @@ import {
 } from '../shared/protocol';
 import { isTeamId, rankTeams, TEAMS, teamPointsFor, winningTeams, zeroPoints, type TeamId } from '../shared/teams';
 import { DEFAULT_DIFFICULTY, isDifficulty, type Difficulty } from '../shared/difficulty';
-import { isScreen, overallStandings, type ActivityScore, type ActivityStatus, type Screen } from '../shared/activities';
+import { isActivityId, isScreen, overallStandings, type ActivityScore, type ActivityStatus, type Screen } from '../shared/activities';
 import type { RoomConfig } from './config';
 import { newPoseMemory, PoseSession } from './games/pose';
 import type { Eligible } from './games/shared';
@@ -759,7 +759,7 @@ export class Room {
     return this.cards.pick({ id: p.id, name: p.name, team: p.team }, round, card);
   }
 
-  /** Host: run Tech Trivia. `start` begins a quiz (replacing a finished one), `reveal` closes the question now, `next` moves on. */
+  /** Host: run Tech Trivia. `start` begins a quiz (replacing a finished one), `reveal` closes the question and shows the answer, `next` / `prev` move between questions. */
   triviaCommand(byId: string, op: unknown): boolean {
     if (byId !== this.hostId || this.activity !== 'trivia') return false;
     const s = this.trivia;
@@ -785,6 +785,8 @@ export class Room {
         return !!s?.revealNow();
       case 'next':
         return !!s?.next();
+      case 'prev':
+        return !!s?.prev();
       default:
         return false;
     }
@@ -813,12 +815,13 @@ export class Room {
   /** Each activity's own team points and status (scores are never mixed between activities). */
   private activityScores(): ActivityScore[] {
     const status = (live: boolean, done: boolean): ActivityStatus => (done ? 'done' : live ? 'live' : 'pending');
-    return [
+    const all: ActivityScore[] = [
       { id: 'typedrive', status: status(this.activity === 'typedrive' || this.matchRaces > 0, this.matchEnded), points: this.teamTotals() },
       { id: 'pose', status: status(this.activity === 'pose' || !!this.pose, !!this.pose?.over), points: this.pose?.scores() ?? zeroPoints() },
       { id: 'cards', status: status(this.activity === 'cards' || !!this.cards, !!this.cards?.over), points: this.cards?.scores() ?? zeroPoints() },
       { id: 'trivia', status: status(this.activity === 'trivia' || !!this.trivia, !!this.trivia?.over), points: this.trivia?.scores() ?? zeroPoints() },
     ];
+    return all.filter((a) => isActivityId(a.id)); // a hidden game (the Funny Pose Challenge) is left out
   }
 
   // ------------------------------------------------------------------ housekeeping

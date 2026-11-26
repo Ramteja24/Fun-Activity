@@ -45,8 +45,8 @@ describe('the team summary is built only from the server’s numbers', () => {
       const line = fromServer.find((l) => l.id === t.id)!;
       assert.equal(line.drivers.reduce((s, d) => s + d.points, 0), line.gained, `${t.id}: contributions add up to the team's total`);
     }
-    // 1st = 100, 2nd = 75, 3rd = 50, 4th = 30, 5th = 20, a DNF = 0 (the server's table, not recomputed here)
-    assert.deepEqual(Object.fromEntries(fromRows.map((l) => [l.id, l.gained])), { ctrl: 150, titans: 95, vibe: 30 });
+    // 1st = 10, 2nd = 8, 3rd = 6, 4th = 4, 5th = 2, a DNF = 0 (the server's table, not recomputed here)
+    assert.deepEqual(Object.fromEntries(fromRows.map((l) => [l.id, l.gained])), { ctrl: 16, titans: 10, vibe: 4 });
   });
 
   test('the server’s figure wins when it differs: the client never "corrects" it', () => {
@@ -63,7 +63,7 @@ describe('the team summary is built only from the server’s numbers', () => {
     assert.equal(ctrl.rank, 1);
     assert.deepEqual(ctrl.drivers.map((d) => d.name), ['Chitra', 'Farhan']);
     const vibe = lines[2]!;
-    assert.deepEqual(vibe.drivers.map((d) => [d.name, d.finished, d.points]), [['Esha', true, 30], ['Hari', false, 0]], 'a DNF is listed with 0');
+    assert.deepEqual(vibe.drivers.map((d) => [d.name, d.finished, d.points]), [['Esha', true, 4], ['Hari', false, 0]], 'a DNF is listed with 0');
   });
 
   test('the race winner flag: one team, or every team on equal top points (a tie is never broken at random), or nobody when nobody scored', () => {
@@ -90,7 +90,7 @@ describe('the podium and the winner announcement', () => {
     assert.match(html, /class="rc-step third bronze tm-ctrl"/);
     assert.equal((html.match(/class="rc-trophy rc-pod-trophy"/g) ?? []).length, 3);
     assert.match(html, /Dev<em> · you<\/em>/, 'your own place is marked');
-    assert.match(html, /\+100 team pts/);
+    assert.match(html, /\+10 team pts/);
     assert.match(html, /The Titans/);
   });
 
@@ -102,7 +102,7 @@ describe('the podium and the winner announcement', () => {
     assert.match(html, /<b>89<\/b> WPM/);
     assert.match(html, /<b>98%<\/b> accuracy/);
     assert.match(html, /<b>48\.1s<\/b> time/);
-    assert.match(html, /<b>\+100<\/b> team pts/);
+    assert.match(html, /<b>\+10<\/b> team pts/);
     assert.match(html, /Ctrl \+ Alt \+ Defeat/);
     const shared = renderToStaticMarkup(createElement(WinnerBanner, { winners: [entry(1, 'Ana', 'vibe'), entry(1, 'Raj', 'titans')] }));
     assert.match(shared, /Joint race winners/);
@@ -117,9 +117,9 @@ describe('the podium and the winner announcement', () => {
     assert.equal((html.match(/class="rt tm-/g) ?? []).length, 3);
     assert.equal((html.match(/rt tm-\w+ best/g) ?? []).length, 1);
     assert.match(html, /Race winners/);
-    assert.match(html, /\+150 this race/);
-    assert.match(html, /\+95 this race/);
-    assert.match(html, /\+30 this race/);
+    assert.match(html, /\+16 this race/);
+    assert.match(html, /\+10 this race/);
+    assert.match(html, /\+4 this race/);
     assert.match(html, /rt tm-titans mine/, 'your own team is marked');
     assert.match(html, /<span class="rt-dwpm">DNF<\/span><b class="rt-dpts">\+0<\/b>/);
     assert.match(html, /2nd in this race/);

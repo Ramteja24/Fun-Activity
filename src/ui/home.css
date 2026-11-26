@@ -272,6 +272,23 @@ button.pt-step:hover:not(:disabled) {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+/* the overall scoreboard beside a game: the name on top, "this game N" under it */
+.pt-score-name:has(.pt-score-detail) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 2px;
+}
+.pt-score-detail {
+  grid-column: 2;
+  overflow: hidden;
+  color: var(--ink-3);
+  font: 500 11.5px/1.2 var(--font-display);
+  text-overflow: ellipsis;
+}
+.pt-overall > .section-title {
+  margin: 0 0 8px;
+}
 .pt-score-pts {
   font: 700 22px/1 var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -615,7 +632,7 @@ button.pt-step:hover:not(:disabled) {
 }
 @media (min-width: 1100px) {
   .ph-games {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
   }
 }
@@ -1354,6 +1371,18 @@ button.pt-step:hover:not(:disabled) {
 .tt-q {
   font: 600 clamp(20px, 2.4vw, 26px) / 1.35 var(--font-display);
   letter-spacing: -0.01em;
+}
+/* a question's code snippet: kept line for line, in a quiet code panel */
+.tt-code {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font: 500 clamp(13px, 1.9vh, 15px) / 1.5 ui-monospace, 'Cascadia Code', Consolas, monospace;
+  white-space: pre;
+  overflow-x: auto;
+  position: relative;
 }
 .tt-opts {
   display: grid;
@@ -2712,8 +2741,13 @@ button.pt-step:hover:not(:disabled) {
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
-.ph-layout .ph-board > .section-title span::after {
-  content: ' · placement points';
+.ph-row-parts {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--ink-3, #6b7280);
+  font: 500 11.5px/1.25 var(--font-mono);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .ph-layout .ph-foot {
   font-size: 11.5px;

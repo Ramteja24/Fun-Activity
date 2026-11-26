@@ -65,7 +65,7 @@ describe('the Tech Trivia arena', () => {
 
 describe('the facts under each introduction are the game’s own numbers', () => {
   test('Funny Pose: rounds, poses and points come from the shared rules', () => {
-    assert.deepEqual([...GAME_FACTS.pose], [`${POSE_ROUNDS} rounds`, `${POSE_BANK.length} funny poses`, `+${POSE_POINTS} pts a round`]);
+    assert.deepEqual([...GAME_FACTS.pose], [`${POSE_ROUNDS} rounds · 2 per team`, `${POSE_BANK.length} funny poses`, `+${POSE_POINTS} pts a round`]);
   });
 
   test('Playing Cards: rounds, cards and points come from the shared rules', () => {

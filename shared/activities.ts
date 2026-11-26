@@ -1,4 +1,4 @@
-// The Weekly Fun Activity: four games in a fixed order, a score for each, and an overall team leaderboard.
+// The Weekly Fun Activity: three games in a fixed order (the Funny Pose Challenge is hidden), a score for each, and an overall team leaderboard.
 // Pure data and rules, shared by the server (authoritative) and the client (display only).
 import { rankTeams, TEAMS, TEAM_IDS, type TeamId } from './teams';
 
@@ -15,9 +15,11 @@ export interface ActivityDef {
 /** In the order they are played. */
 export const ACTIVITIES: readonly ActivityDef[] = [
   { id: 'typedrive', name: 'TypeDrive', tagline: 'A live typing race. Each team’s drivers score points for finishing first.' },
-  { id: 'pose', name: 'Funny Pose Challenge', tagline: 'The host picks a team and a player. They copy a funny pose on the call while everyone watches.' },
+  // HIDDEN: the Funny Pose Challenge. Its code is all still here (server/games/pose.ts, src/screens/FunnyPose.tsx); to bring it
+  // back, uncomment this line — it then shows up again on the dashboard, in the nav and in the play order, after TypeDrive.
+  // { id: 'pose', name: 'Funny Pose Challenge', tagline: 'The host picks a team and a player. They copy a funny pose on the call while everyone watches.' },
   { id: 'cards', name: 'Playing Cards', tagline: 'Watch the joker, follow the shuffle, tap the card — first to find it wins 10 for the team.' },
-  { id: 'trivia', name: 'Tech Trivia', tagline: 'Five quick questions on Python, AI, SQL, Git and the cloud. Everyone answers.' },
+  { id: 'trivia', name: 'Tech Trivia', tagline: 'Five quick questions on Python, SQL and AI. Everyone answers.' },
 ];
 
 export const ACTIVITY_IDS: readonly ActivityId[] = ACTIVITIES.map((a) => a.id);
@@ -38,7 +40,17 @@ export interface ActivityScore {
 }
 
 // ------------------------------------------------------------------------------------------------ Funny Pose Challenge
-export const POSE_ROUNDS = 8;
+/** Every team plays the same number of rounds: two each, so six in all. */
+export const POSE_TURNS_PER_TEAM = 2;
+export const POSE_ROUNDS = POSE_TURNS_PER_TEAM * TEAMS.length;
+/**
+ * Whether `team` has used up its rounds. Only enforced while another team that still has rounds left has someone here, so a
+ * session can never get stuck when the teams owed a round have nobody at the meeting.
+ */
+export function poseTeamFull(team: TeamId, turns: Record<TeamId, number>, here: (t: TeamId) => number): boolean {
+  if (turns[team] < POSE_TURNS_PER_TEAM) return false;
+  return TEAM_IDS.some((t) => t !== team && turns[t] < POSE_TURNS_PER_TEAM && here(t) > 0);
+}
 /** What a completed pose is worth to the selected player's team (a pose the host marks as not completed earns nothing). */
 export const POSE_POINTS = 10;
 /** The performer's suggested time once the pose is revealed (a clock for everyone to watch; the host still decides the result). */
@@ -47,70 +59,58 @@ export const POSE_PERFORM_MS = 30_000;
 export const POSE_SPIN_MS = 5200;
 
 // ------------------------------------------------------------------------------------------------ Playing Cards (find the joker)
-export const CARDS_ROUNDS = 5;
+export const CARDS_ROUNDS = 10;
 /** Per round: how many cards, how many swaps the shuffle makes, and how long each swap takes (it gets harder every round). */
-export const CARDS_PER_ROUND: readonly number[] = [3, 4, 4, 5, 5];
-export const CARDS_SWAPS: readonly number[] = [6, 8, 10, 12, 14];
-export const CARDS_SWAP_MS: readonly number[] = [420, 360, 320, 280, 240];
+export const CARDS_PER_ROUND: readonly number[] = [3, 3, 4, 4, 4, 5, 5, 5, 5, 5];
+export const CARDS_SWAPS: readonly number[] = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+export const CARDS_SWAP_MS: readonly number[] = [420, 400, 380, 360, 340, 320, 300, 280, 260, 240];
 /** How long the cards stay face up with the joker showing before the shuffle starts. */
 export const CARDS_PREVIEW_MS = 2200;
 /** A short pause after the cards turn face down, so every screen starts the shuffle together. */
 export const CARDS_SHUFFLE_LEAD_MS = 500;
 /** Per round, only the FIRST correct pick scores: this many points for that player's team. */
 export const CARDS_POINTS = 10;
+/** How long players have to pick once the shuffle stops; then the answer is revealed by itself (the host can reveal sooner). */
+export const CARDS_PICK_MS = 10_000;
 
 // ------------------------------------------------------------------------------------------------ Tech Trivia
 export const TRIVIA_QUESTIONS = 5;
-export const TRIVIA_LIMIT_MS = 20_000;
+export const TRIVIA_LIMIT_MS = 15_000;
 /** Per question, only the FIRST correct answer scores: this many points for that player's team. */
 export const TRIVIA_POINTS = 10;
 
 // ------------------------------------------------------------------------------------------------ the overall leaderboard
 /**
- * The activities score on very different scales (a TypeDrive race can add hundreds of points, a trivia question 10), so the
- * overall leaderboard adds up *placements*, not raw points: in each activity that has scored, the team in 1st place gets 3, 2nd
- * gets 2, 3rd gets 1 (teams level on points share a place, as in the race results). A team that scored nothing in an activity
- * gets nothing for it. Each activity therefore counts the same, and the raw points stay visible next to it.
+ * ONE scoreboard for the whole session: every game's team points are simply added together, game after game. All games score
+ * on the same scale (+10 for a won round; a race gives 10 / 8 / 6 / 4 / 2 / 1 per finisher), so no game swamps the others.
+ * Teams on equal totals share a rank and are shown as a tie (nobody is picked at random).
  */
-export const PLACEMENT_POINTS: readonly number[] = [3, 2, 1];
-export const placementFor = (rank: number): number => PLACEMENT_POINTS[rank - 1] ?? 0;
-
 export interface OverallRow {
   id: TeamId;
   name: string;
-  /** Sum of the placement points over the activities that have scored. */
-  placement: number;
-  /** Activities in which this team is (currently) in first place, ties included. */
-  wins: number;
-  /** 1 = best. Teams level on placement points share a rank, shown as a tie (nobody is picked at random). */
+  /** The running total: the sum of this team's points in every game played so far. */
+  points: number;
+  /** What each game has added to that total. */
+  byActivity: Record<ActivityId, number>;
+  /** 1 = best. Equal totals share a rank. */
   rank: number;
   tied: boolean;
 }
 
-const scored = (a: ActivityScore) => TEAM_IDS.some((t) => a.points[t] > 0);
-
-/** The overall leaderboard from the activities' scores, in the fixed team order. */
+/** The overall scoreboard from the activities' scores, in the fixed team order. */
 export function overallStandings(activities: readonly ActivityScore[]): OverallRow[] {
-  const placement = Object.fromEntries(TEAM_IDS.map((t) => [t, 0])) as Record<TeamId, number>;
-  const wins = { ...placement };
-  for (const a of activities) {
-    if (!scored(a)) continue; // nothing scored there yet: it adds nothing to anyone
-    for (const r of rankTeams(a.points)) {
-      if (r.points <= 0) continue; // scoring nothing earns no placement, however many others also scored nothing
-      placement[r.id] += placementFor(r.rank);
-      if (r.rank === 1) wins[r.id] += 1;
-    }
-  }
-  const sorted = [...TEAM_IDS].sort((a, b) => placement[b] - placement[a] || wins[b] - wins[a] || TEAM_IDS.indexOf(a) - TEAM_IDS.indexOf(b));
-  const sameAs = (a: TeamId, b: TeamId) => placement[a] === placement[b] && wins[a] === wins[b];
+  const totals = Object.fromEntries(TEAM_IDS.map((t) => [t, 0])) as Record<TeamId, number>;
+  for (const a of activities) for (const t of TEAM_IDS) totals[t] += a.points[t] ?? 0;
+  const ranked = new Map(rankTeams(totals).map((r) => [r.id, r]));
   return TEAMS.map((t) => {
-    const ahead = sorted.filter((o) => placement[o] > placement[t.id] || (placement[o] === placement[t.id] && wins[o] > wins[t.id])).length;
-    return { id: t.id, name: t.name, placement: placement[t.id], wins: wins[t.id], rank: 1 + ahead, tied: sorted.filter((o) => o !== t.id && sameAs(o, t.id)).length > 0 };
+    const byActivity = Object.fromEntries(ACTIVITY_IDS.map((id) => [id, activities.find((a) => a.id === id)?.points[t.id] ?? 0])) as Record<ActivityId, number>;
+    const r = ranked.get(t.id)!;
+    return { id: t.id, name: t.name, points: totals[t.id], byActivity, rank: r.rank, tied: r.tied };
   });
 }
 
-/** The team(s) leading the overall leaderboard once something has scored (more than one = a tie), else none. */
+/** The team(s) leading the overall scoreboard once something has scored (more than one = a tie), else none. */
 export function overallLeaders(rows: readonly OverallRow[]): TeamId[] {
-  if (rows.every((r) => r.placement === 0)) return [];
+  if (rows.every((r) => r.points === 0)) return [];
   return rows.filter((r) => r.rank === 1).map((r) => r.id);
 }

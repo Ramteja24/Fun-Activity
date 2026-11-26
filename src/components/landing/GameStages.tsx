@@ -9,9 +9,9 @@ import { CardBack, CardFace, JokerFace } from '../cards/CardArt';
 
 /** Facts shown under each game's introduction, taken from the rules of the game (see README). */
 export const GAME_FACTS = {
-  pose: ['8 rounds', '24 funny poses', '+10 pts a round'],
-  cards: ['5 rounds', '3–5 cards', 'First right: +10 pts'],
-  trivia: ['5 questions', '20 s to answer', 'First correct: +10 pts'],
+  pose: ['6 rounds · 2 per team', '24 funny poses', '+10 pts a round'],
+  cards: ['10 rounds', '3–5 cards', 'First right: +10 pts'],
+  trivia: ['5 questions', '15 s to answer', 'First correct: +10 pts'],
 } as const;
 
 // ------------------------------------------------------------------------------------------------ Funny Pose Challenge
