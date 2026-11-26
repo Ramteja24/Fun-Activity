@@ -96,6 +96,7 @@
 .ac-cards { --ac: var(--g-cards); --ac-50: var(--g-cards-50); }
 .ac-trivia { --ac: var(--g-trivia); --ac-50: var(--g-trivia-50); }
 .ac-hub { --ac: var(--brand); --ac-50: var(--brand-50); }
+.ac-scores { --ac: var(--brand); --ac-50: var(--brand-50); }
 
 /* ---------------------------------------------------------------------------------------------- base */
 html,

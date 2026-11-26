@@ -178,6 +178,11 @@ describe('the dashboard and the activities in a room', () => {
     assert.equal(s.room.setActivity(host(s), 'trivia'), true);
     assert.equal(s.room.setActivity(host(s), 'hub'), true);
     assert.equal(s.room.setActivity(host(s), 'hub'), true, 'already there is fine');
+    // the final scoreboard: a room screen of its own that everyone follows into — only the host takes the room there
+    assert.equal(s.room.setActivity(s.get('A1').p.id, 'scores'), false);
+    assert.equal(s.room.setActivity(host(s), 'scores'), true);
+    for (const e of s.entries.values()) assert.equal(e.conn.room!.activity, 'scores', `${e.p.name} sees the final scoreboard`);
+    assert.equal(s.room.setActivity(host(s), 'hub'), true);
   });
 
   test('TypeDrive races only start from TypeDrive, cannot be left mid-race, and its points are its own', () => {

@@ -70,6 +70,12 @@ export function HubScreen() {
           Overall scoreboard <span>all games added up</span>
         </h2>
         <Overall />
+        {isHost && (
+          <button type="button" className="btn btn-primary btn-sm ph-full-board" onClick={() => openActivity('scores')} title="Take everyone to the full final scoreboard">
+            <IconTrophy width={16} height={16} />
+            <span>Full scoreboard</span>
+          </button>
+        )}
       </section>
 
       <section aria-labelledby="ph-games-title" className="ph-games-sec rise" style={{ '--d': '.06s' } as React.CSSProperties}>

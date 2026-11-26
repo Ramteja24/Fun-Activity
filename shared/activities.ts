@@ -3,8 +3,8 @@
 import { rankTeams, TEAMS, TEAM_IDS, type TeamId } from './teams';
 
 export type ActivityId = 'typedrive' | 'pose' | 'cards' | 'trivia';
-/** What the room is showing: the dashboard, or one of the activities. */
-export type Screen = 'hub' | ActivityId;
+/** What the room is showing: the dashboard, the final scoreboard, or one of the activities. */
+export type Screen = 'hub' | 'scores' | ActivityId;
 
 export interface ActivityDef {
   id: ActivityId;
@@ -24,7 +24,7 @@ export const ACTIVITIES: readonly ActivityDef[] = [
 
 export const ACTIVITY_IDS: readonly ActivityId[] = ACTIVITIES.map((a) => a.id);
 export const isActivityId = (x: unknown): x is ActivityId => typeof x === 'string' && (ACTIVITY_IDS as readonly string[]).includes(x);
-export const isScreen = (x: unknown): x is Screen => x === 'hub' || isActivityId(x);
+export const isScreen = (x: unknown): x is Screen => x === 'hub' || x === 'scores' || isActivityId(x);
 export const activityName = (id: ActivityId): string => ACTIVITIES.find((a) => a.id === id)!.name;
 /** The activity after this one (null after the last). */
 export const nextActivity = (id: ActivityId): ActivityId | null => ACTIVITY_IDS[ACTIVITY_IDS.indexOf(id) + 1] ?? null;

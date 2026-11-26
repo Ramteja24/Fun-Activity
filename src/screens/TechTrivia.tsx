@@ -360,8 +360,11 @@ function Over({ t, title }: { t: TriviaInfo; title: ReactNode }) {
         <>
 
       <HostBar isHost={isHost} waiting="Waiting for the host to continue…">
-        <button className="btn btn-primary btn-lg" onClick={() => openActivity('hub')}>
-          <span>Dashboard &amp; final scoreboard</span>
+        <button className="btn btn-primary btn-lg" onClick={() => openActivity('scores')}>
+          <span>Final scoreboard</span>
+        </button>
+        <button className="btn btn-secondary btn-lg" onClick={() => openActivity('hub')}>
+          <span>Dashboard</span>
         </button>
         <button className="btn btn-secondary btn-lg" onClick={() => triviaOp('prev')} title="Show the questions again (their points stay as they are)">
           <span>Back to question {t.total}</span>

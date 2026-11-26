@@ -7,6 +7,7 @@ import { PLATFORM } from './brand';
 import { AdminLogin } from './components/AdminLogin';
 import { IconX } from './components/Icons';
 import { DemoDock } from './demo/DemoDock';
+import { FinalScoreboardScreen } from './screens/FinalScoreboard';
 import { FunnyPoseScreen } from './screens/FunnyPose';
 import { HubScreen } from './screens/Hub';
 import { Landing } from './screens/Landing';
@@ -75,8 +76,8 @@ function GameTransition() {
   return (
     <div key={shown.key} className={`gt ac-${shown.id}`} aria-hidden>
       <div className="gt-title">
-        <span>{game ? 'Now starting' : 'Back to the'}</span>
-        <b>{game ? game.name : PLATFORM.title}</b>
+        <span>{game ? 'Now starting' : shown.id === 'scores' ? 'And the winner is…' : 'Back to the'}</span>
+        <b>{game ? game.name : shown.id === 'scores' ? 'Final scoreboard' : PLATFORM.title}</b>
       </div>
     </div>
   );
@@ -130,6 +131,8 @@ export default function App() {
     screen = entry ? <Landing /> : <WelcomeScreen />;
   } else if (room.activity === 'hub') {
     screen = <HubScreen />; // the Weekly Fun Activity dashboard: the room's home between games
+  } else if (room.activity === 'scores') {
+    screen = <FinalScoreboardScreen />; // every team's total over all the games, and the winner
   } else if (room.activity === 'pose') {
     screen = <FunnyPoseScreen />;
   } else if (room.activity === 'cards') {

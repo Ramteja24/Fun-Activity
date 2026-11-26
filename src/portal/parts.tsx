@@ -74,6 +74,7 @@ function ActivityNav({ screen }: { screen: Screen }) {
     <nav className="pt-nav" aria-label="Weekly Fun Activity">
       {step('hub', 'Dashboard', '⌂')}
       {ACTIVITIES.map((a, i) => step(a.id, a.name, String(i + 1), status(a.id)))}
+      {step('scores', 'Final scoreboard', '★')}
     </nav>
   );
 }
