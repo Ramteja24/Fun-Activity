@@ -62,8 +62,8 @@ export const POSE_SPIN_MS = 5200;
 export const CARDS_ROUNDS = 10;
 /** Per round: how many cards, how many swaps the shuffle makes, and how long each swap takes (it gets harder every round). */
 export const CARDS_PER_ROUND: readonly number[] = [3, 3, 4, 4, 4, 5, 5, 5, 5, 5];
-export const CARDS_SWAPS: readonly number[] = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-export const CARDS_SWAP_MS: readonly number[] = [420, 400, 380, 360, 340, 320, 300, 280, 260, 240];
+export const CARDS_SWAPS: readonly number[] = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+export const CARDS_SWAP_MS: readonly number[] = [340, 320, 300, 280, 260, 245, 230, 215, 200, 190];
 /** How long the cards stay face up with the joker showing before the shuffle starts. */
 export const CARDS_PREVIEW_MS = 2200;
 /** A short pause after the cards turn face down, so every screen starts the shuffle together. */

@@ -159,7 +159,7 @@ print(total, count)`,
   {
     id: 'sql-left-join-where',
     category: 'SQL',
-    text: `customers: Ana (id 1), Ben (id 2), Cy (id 3). orders: Ana 150, Ana 50, Ben 80. How many rows does this query return?
+    text: `The customers table has three people: Rahul, Priya and Arjun. The orders table has three orders: Rahul spent 150, Rahul spent 50 and Priya spent 80. Arjun has no orders. How many rows does this query return?
 
 SELECT c.name, o.amount
 FROM customers c
@@ -173,17 +173,17 @@ WHERE o.amount > 100;`,
       '1',
     ],
     correct: 3,
-    explanation: 'The WHERE clause runs after the join and drops every row whose amount is NULL or not over 100, so the LEFT JOIN behaves like an INNER JOIN. Only Ana 150 is left. Put the condition in the ON clause to keep every customer.',
+    explanation: 'The WHERE clause runs after the join and drops every row whose amount is NULL or not over 100, so the LEFT JOIN behaves like an INNER JOIN. Only Rahul’s 150 order is left. Put the condition in the ON clause to keep every customer.',
   },
   {
     id: 'sql-rank-ties',
     category: 'SQL',
-    text: `players: Ana 90, Ben 90, Cy 80, Dev 70. In this query, what is Cy's r?
+    text: `The players table has four scores: Rahul 90, Priya 90, Arjun 80 and Meera 70. This query ranks them from the highest score down. What player_rank does Arjun get?
 
 SELECT name, score,
-  RANK() OVER (ORDER BY score DESC) AS r
+  RANK() OVER (ORDER BY score DESC) AS player_rank
 FROM players
-ORDER BY r;`,
+ORDER BY player_rank;`,
     options: [
       '3',
       '2',
@@ -191,7 +191,7 @@ ORDER BY r;`,
       '4',
     ],
     correct: 0,
-    explanation: 'Ana and Ben tie on 90 and both get rank 1. RANK() then skips a number, so Cy is 3. DENSE_RANK() would give 2; ROW_NUMBER() would give 3 but break the tie arbitrarily.',
+    explanation: 'Rahul and Priya tie on 90 and both get rank 1. RANK() then skips a number, so Arjun gets 3 (and Meera 4). DENSE_RANK() would give Arjun 2.',
   },
 
   // AI

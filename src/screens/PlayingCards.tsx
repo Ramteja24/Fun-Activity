@@ -1,7 +1,7 @@
 import { OverallBoard } from '../components/OverallBoard';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { CARDS_POINTS, CARDS_ROUNDS } from '../../shared/activities';
-import { finalPosition } from '../../shared/cards';
+import { finalPosition, pairsOf } from '../../shared/cards';
 import type { CardsInfo } from '../../shared/protocol';
 import { rankTeams, TEAMS, teamName, type TeamId } from '../../shared/teams';
 import { uiSound } from '../audio/ui-sounds';
@@ -270,26 +270,37 @@ function CardTable({ c, pickable, myPick, onPick }: { c: CardsInfo; pickable: bo
       const whoAt = Array.from({ length: n }, (_, i) => i);
       const done = Math.max(0, Math.min(swaps.length, Math.floor(elapsed / ms)));
       for (let i = 0; i < done; i++) {
-        const [a, b] = swaps[i]!;
-        [whoAt[a], whoAt[b]] = [whoAt[b]!, whoAt[a]!];
+        for (const [a, b] of pairsOf(swaps[i]!)) [whoAt[a], whoAt[b]] = [whoAt[b]!, whoAt[a]!];
       }
       const pos = new Array<number>(n);
       whoAt.forEach((k, s) => (pos[k] = s));
-      const moving = elapsed >= 0 && done < swaps.length ? swaps[done]! : null;
-      const t = moving ? ease((elapsed - done * ms) / ms) : 0;
+      const moving = elapsed >= 0 && done < swaps.length ? pairsOf(swaps[done]!) : null;
+      const raw = moving ? (elapsed - done * ms) / ms : 0;
+      const t = ease(raw);
+      const arc = Math.sin(Math.PI * t);
       for (let k = 0; k < n; k++) {
         const el = cardRefs.current[k];
         if (!el) continue;
-        let x = xOf(pos[k]!);
+        const from = pos[k]!;
+        let x = xOf(from);
         let y = 0;
         let r = 0;
-        if (moving && (pos[k] === moving[0] || pos[k] === moving[1])) {
-          const from = pos[k]!;
-          const to = from === moving[0] ? moving[1] : moving[0];
-          const dir = from < to ? -1 : 1; // the card moving right goes over, the one moving left goes under
+        const p = moving ? moving.findIndex(([a, b]) => from === a || from === b) : -1;
+        if (moving && p >= 0) {
+          const [a, b] = moving[p]!;
+          const to = from === a ? b : a;
+          // the card moving right goes over, the one moving left goes under; a second pair in the same step arcs the other way
+          const dir = (from < to ? -1 : 1) * (p === 0 ? 1 : -1);
           x = xOf(from) + (xOf(to) - xOf(from)) * t;
-          y = dir * lift * Math.sin(Math.PI * t);
-          r = dir * 7 * Math.sin(Math.PI * t);
+          y = dir * lift * (p === 0 ? 1 : 0.7) * arc;
+          r = dir * 7 * arc;
+        } else if (moving && (done + k) % 3 !== 2) {
+          // a feint: a card that is not swapping starts towards a neighbour and pulls back — the same on every screen
+          const side = from === 0 ? 1 : from === n - 1 ? -1 : (done + k) % 2 === 0 ? 1 : -1;
+          const fake = Math.sin(Math.PI * raw);
+          x += side * (cw + gap) * 0.32 * fake;
+          y = (side > 0 ? -1 : 1) * lift * 0.35 * fake;
+          r = side * 4 * fake;
         }
         el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${r.toFixed(2)}deg)`;
         el.style.zIndex = y < 0 ? '3' : y > 0 ? '1' : '2';

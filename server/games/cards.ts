@@ -15,24 +15,41 @@ import { TEAM_IDS, zeroPoints, type TeamId } from '../../shared/teams';
 import type { Eligible, Rand } from './shared';
 
 export { finalPosition };
-export type Swap = [number, number];
+/** One shuffle step: [a, b] (one pair swaps) or [a, b, c, d] (two pairs swap at the same moment). */
+export type Swap = number[];
 
-/** `count` swaps of two different positions among `cards`; never the same pair twice in a row (that would look like a stall). */
+/** With 4 or more cards, how often a step moves two pairs at once (the eye can only follow one of them). */
+export const DOUBLE_SWAP_CHANCE = 0.45;
+
+/**
+ * `count` shuffle steps among `cards` positions. Each step swaps one pair — or, with 4+ cards, often two pairs at once. Never the
+ * same first pair twice in a row (that would look like a stall).
+ */
 export function makeSwaps(cards: number, count: number, rand: Rand): Swap[] {
-  const swaps: Swap[] = [];
+  const steps: Swap[] = [];
+  const pick = (exclude: number[]): number => {
+    let x = Math.floor(rand() * (cards - exclude.length));
+    for (const e of [...exclude].sort((p, q) => p - q)) if (x >= e) x += 1;
+    return x;
+  };
   for (let i = 0; i < count; i++) {
     let a = 0;
     let b = 0;
     for (let tries = 0; tries < 20; tries++) {
-      a = Math.floor(rand() * cards);
-      b = Math.floor(rand() * (cards - 1));
-      if (b >= a) b += 1;
-      const prev = swaps[swaps.length - 1];
+      a = pick([]);
+      b = pick([a]);
+      const prev = steps[steps.length - 1];
       if (!prev || !((prev[0] === a && prev[1] === b) || (prev[0] === b && prev[1] === a))) break;
     }
-    swaps.push(a < b ? [a, b] : [b, a]);
+    const step: Swap = a < b ? [a, b] : [b, a];
+    if (cards >= 4 && rand() < DOUBLE_SWAP_CHANCE) {
+      const c = pick([a, b]);
+      const d = pick([a, b, c]);
+      step.push(...(c < d ? [c, d] : [d, c]));
+    }
+    steps.push(step);
   }
-  return swaps;
+  return steps;
 }
 
 export interface CardsEnv {
@@ -185,7 +202,7 @@ export class CardsSession {
       round: this.round,
       cards: this.cards,
       ...(shown ? { start: this.start, previewEndsAt: this.previewEndsAt } : {}),
-      ...(shuffled ? { swaps: this.swaps.map(([a, b]) => [a, b] as Swap), startsAt: this.startsAt } : {}),
+      ...(shuffled ? { swaps: this.swaps.map((step) => [...step]), startsAt: this.startsAt } : {}),
       swapMs: this.swapMs,
       ...(this.stage === 'pick' ? { pickEndsAt: this.pickEndsAt } : {}),
       pickMs: CARDS_PICK_MS,

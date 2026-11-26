@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, test } from 'node:test';
 import { CARDS_PER_ROUND, CARDS_PICK_MS, CARDS_POINTS, CARDS_PREVIEW_MS, CARDS_ROUNDS, CARDS_SHUFFLE_LEAD_MS, CARDS_SWAP_MS, CARDS_SWAPS } from '../shared/activities';
-import { finalPosition } from '../shared/cards';
+import { finalPosition, pairsOf } from '../shared/cards';
 import type { CardsInfo, RoomInfo } from '../shared/protocol';
 import { TEAM_IDS, zeroPoints } from '../shared/teams';
 import { createApp, parseClientMsg } from '../server/app';
@@ -30,29 +30,40 @@ describe('the shuffle', () => {
     assert.equal(finalPosition(2, [[0, 2]]), 0);
     assert.equal(finalPosition(1, [[0, 2]]), 1, 'a card not in the swap stays put');
     assert.equal(finalPosition(0, [[0, 1], [1, 2], [0, 2]]), 0);
+    // a two-pair step: 0↔1 and 2↔3 at the same moment
+    assert.equal(finalPosition(0, [[0, 1, 2, 3]]), 1);
+    assert.equal(finalPosition(3, [[0, 1, 2, 3]]), 2);
+    assert.equal(finalPosition(1, [[0, 1, 2, 3]]), 0, 'moved once, not again by the second pair');
+    assert.equal(finalPosition(4, [[0, 1, 2, 3]]), 4);
     // against a plain simulation of the table
     const rand = seeded(5);
     for (let r = 0; r < 50; r++) {
       const n = 3 + (r % 3);
       const swaps = makeSwaps(n, 14, rand);
       const table = Array.from({ length: n }, (_, i) => i);
-      for (const [a, b] of swaps) [table[a], table[b]] = [table[b]!, table[a]!];
+      for (const step of swaps) for (const [a, b] of pairsOf(step)) [table[a], table[b]] = [table[b]!, table[a]!];
       for (let k = 0; k < n; k++) assert.equal(table[finalPosition(k, swaps)], k);
     }
   });
 
-  test('every swap moves two different cards, never the same pair twice in a row', () => {
+  test('every step moves two different cards (or two separate pairs), never the same first pair twice in a row', () => {
     const rand = seeded(9);
+    let doubles = 0;
     for (let r = 0; r < 200; r++) {
       const n = 3 + (r % 3);
       const swaps = makeSwaps(n, 12, rand);
       assert.equal(swaps.length, 12);
-      swaps.forEach(([a, b], i) => {
-        assert.ok(a >= 0 && b < n && a < b, `${a},${b} within ${n}`);
+      swaps.forEach((step, i) => {
+        assert.ok(step.length === 2 || step.length === 4);
+        if (n < 4) assert.equal(step.length, 2, 'with 3 cards one pair at a time');
+        if (step.length === 4) doubles++;
+        assert.equal(new Set(step).size, step.length, 'the pairs of a step never share a position');
+        for (const [a, b] of pairsOf(step)) assert.ok(a >= 0 && b < n && a < b, `${a},${b} within ${n}`);
         const prev = swaps[i - 1];
-        assert.ok(!prev || prev[0] !== a || prev[1] !== b, 'no repeated pair');
+        assert.ok(!prev || prev[0] !== step[0] || prev[1] !== step[1], 'no repeated pair');
       });
     }
+    assert.ok(doubles > 300, `two pairs move at once often (${doubles} times)`);
   });
 
   test('it gets harder every round: more cards, more swaps, faster swaps', () => {

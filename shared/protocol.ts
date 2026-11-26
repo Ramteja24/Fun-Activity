@@ -254,8 +254,11 @@ export interface CardsInfo {
   start?: number;
   /** Server-clock end of the preview. */
   previewEndsAt?: number;
-  /** The shuffle, sent once it begins: each step swaps the cards at two positions, one step every `swapMs` from `startsAt`. */
-  swaps?: [number, number][];
+  /**
+   * The shuffle, sent once it begins, one step every `swapMs` from `startsAt`: [a, b] swaps the cards at two positions;
+   * [a, b, c, d] swaps two pairs at the same moment.
+   */
+  swaps?: number[][];
   startsAt?: number;
   swapMs: number;
   /** While picking: the server-clock end of the pick timer (the answer is revealed then), and its length. */

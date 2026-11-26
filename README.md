@@ -130,8 +130,9 @@ Tech Trivia is on.
    all in `shared/poses.ts`, each drawn from joint angles by `src/portal/PoseDrawing.tsx`, so no image files are needed). A session
    deals 8 of them, spread over the categories, and the next session avoids those until the bank would run short. Which pose a round
    has is dealt by the server and sent to the screens only when the host reveals it.
-3. **Playing Cards** (find the joker) — **10 rounds**, each harder than the last (3, 3, 4, 4, 4, 5, 5, 5, 5, 5 cards; 6 → 15 swaps; each swap
-   420 → 240 ms). The host presses **Show the joker**: the cards turn face up for 2.2 s so everyone sees where the joker is, then they
+3. **Playing Cards** (find the joker) — **10 rounds**, each harder than the last (3, 3, 4, 4, 4, 5, 5, 5, 5, 5 cards; 8 → 17 shuffle steps; each step
+   340 → 190 ms; with 4+ cards about half the steps swap two pairs at once, and the cards not swapping make fake half-moves
+   towards a neighbour, so everything on the table is moving). The host presses **Show the joker**: the cards turn face up for 2.2 s so everyone sees where the joker is, then they
    turn face down and **shuffle on every screen at once** — the server sends the swap list and the start time, and every screen
    animates the same swaps from the server's clock (transform only, so it stays smooth). Then everyone taps the card they think the
    joker is under (one pick per round, final) within **10 seconds**; when the time is up — or sooner, if the host presses **Reveal answer** — every card turns over. **The first correct pick
